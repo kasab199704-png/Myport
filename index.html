@@ -66,6 +66,7 @@ h2{font-size:14px;color:var(--muted);font-weight:500;margin:22px 4px 8px}
 .field label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}
 .field input,.field textarea,.field select{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:11px 12px;font:inherit;font-size:16px}
 .field textarea{min-height:120px;font-size:12px;font-family:ui-monospace,monospace}
+.field[hidden]{display:none}
 .hint{font-size:12px;color:var(--muted);margin-top:4px}
 .btns{display:flex;gap:8px;margin-top:6px}
 .btn{flex:1;border:0;border-radius:12px;padding:13px;font:inherit;font-weight:600;cursor:pointer;background:var(--card2);color:var(--text)}
@@ -442,6 +443,10 @@ const TH_MONTH=["มกราคม","กุมภาพันธ์","มีน
 function uid(){return Math.random().toString(36).slice(2,9);}
 function ensure(){
   if(!S.salary||!S.salary.months) S.salary={months:{}};
+  Object.values(S.salary.months).forEach(m=>(m.deduct||[]).forEach(x=>{
+    if(!x.mode && /กบข/.test(x.name) && !(+x.amt)) Object.assign(x,{mode:"pct",pct:3,gov:5,base:""});
+    if(x.link===undefined) x.link=/กบข/.test(x.name)?"gpf":"";
+  }));
   S.jars.forEach(j=>{if(!j.id) j.id=uid();});
 }
 function monthKey(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");}
@@ -449,11 +454,19 @@ function shiftMonth(k,n){const [y,m]=k.split("-").map(Number);return monthKey(ne
 function monthLabel(k){const [y,m]=k.split("-").map(Number);return TH_MONTH[m-1]+" "+(y+543);}
 function isoToday(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 const sum=a=>a.reduce((t,x)=>t+(+x.amt||0),0);
+const r2=n=>Math.round(n*100)/100;
+/* ฐานคำนวณ % ของรายการหัก: "" = รายการแรกของรายรับ (เงินเดือน), "all" = รายรับรวม, อื่น ๆ = id ของรายรับ */
+function baseItem(m,b){ if(b==="all") return null; return m.income.find(x=>x.id===b)||m.income[0]||null; }
+function baseAmt(m,b){ return b==="all"?sum(m.income):(+(baseItem(m,b)||{}).amt||0); }
+function baseLabel(m,b){ if(b==="all") return "รายรับรวม"; const i=baseItem(m,b); return i?i.name:"เงินเดือน"; }
+function dAmt(m,x){ return x.mode==="pct"?r2(baseAmt(m,x.base)*(+x.pct||0)/100):(+x.amt||0); }
+function dGov(m,x){ return +x.gov>0?r2(baseAmt(m,x.base)*(+x.gov)/100):0; }
+const money=n=>fmt(n,n%1?2:0);
 let curMonth=monthKey(new Date());
 
 function defaultMonth(){return{
   income:[{id:uid(),name:"เงินเดือน",amt:0},{id:uid(),name:"เงินวิทยฐานะ/เงินเพิ่มอื่น",amt:0}],
-  deduct:[{id:uid(),name:"กบข. (สะสม 3%)",amt:0},{id:uid(),name:"ภาษี ณ ที่จ่าย",amt:0},{id:uid(),name:"สหกรณ์ออมทรัพย์ครู",amt:0},{id:uid(),name:"ฌกส./ช.พ.ค.",amt:0}],
+  deduct:[{id:uid(),name:"กบข. (สะสม)",amt:0,mode:"pct",pct:3,gov:5,base:"",link:"gpf"},{id:uid(),name:"ภาษี ณ ที่จ่าย",amt:0},{id:uid(),name:"สหกรณ์ออมทรัพย์ครู",amt:0},{id:uid(),name:"ฌกส./ช.พ.ค.",amt:0}],
   budget:[
     {id:uid(),name:"เงินสำรอง",amt:0,link:"hi"},
     ...S.jars.map(j=>({id:uid(),name:"โหล"+j.name,amt:0,link:"jar:"+j.id})),
@@ -469,7 +482,7 @@ function getMonth(k){
   const M=S.salary.months;
   if(!M[k]){
     const prevKeys=Object.keys(M).filter(x=>x<k).sort(), src=prevKeys.length?M[prevKeys[prevKeys.length-1]]:null;
-    M[k]=src?{income:structuredClone(src.income),deduct:structuredClone(src.deduct),
+    M[k]=src?{income:structuredClone(src.income),deduct:src.deduct.map(({applied,appliedAmt,...x})=>structuredClone(x)),
       budget:src.budget.map(b=>({id:b.id,name:b.name,amt:b.amt,link:b.link})),expenses:[]}:defaultMonth();
   }
   return M[k];
@@ -501,7 +514,8 @@ function applyBudget(b,on){
 function renderSalary(){
   ensure();
   const m=getMonth(curMonth), el=$("pageSalary");
-  const inc=sum(m.income), ded=sum(m.deduct), net=inc-ded;
+  const inc=sum(m.income), ded=r2(m.deduct.reduce((t,x)=>t+dAmt(m,x),0)), net=r2(inc-ded);
+  const gov=m.deduct.reduce((t,x)=>t+dGov(m,x),0);
   const saves=m.budget.filter(b=>b.link), spends=m.budget.filter(b=>!b.link);
   const savePlan=sum(saves), spendPlan=sum(spends), plan=savePlan+spendPlan;
   const spentBy={}; m.expenses.forEach(e=>{spentBy[e.cat]=(spentBy[e.cat]||0)+(+e.amt||0);});
@@ -526,7 +540,7 @@ function renderSalary(){
   <section class="hero">
     <div class="lbl">รายรับสุทธิเข้าบัญชี</div>
     <div class="total money price">฿${fmt(net)}</div>
-    <div class="small money">รายรับ ฿${fmt(inc)} − หัก ฿${fmt(ded)}</div>
+    <div class="small money">รายรับ ฿${fmt(inc)} − หัก ฿${money(ded)}</div>
     <div class="stats">
       <div class="stat"><span>แผนออม</span><b class="money">฿${fmt(savePlan)}</b><span>โอนแล้ว ${saved}/${saves.length}</span></div>
       <div class="stat"><span>ใช้จ่ายจริง</span><b class="money">฿${fmt(spent)}</b><span class="money">แผน ฿${fmt(spendPlan)}</span></div>
@@ -543,7 +557,11 @@ function renderSalary(){
 
   <h2>รายการหักก่อนเข้าบัญชี</h2>
   <div class="list">
-    ${m.deduct.map(x=>`<div class="line" data-s="ded:${x.id}"><span class="t">${esc(x.name)}</span><span class="r money down">−฿${fmt(x.amt)}</span></div>`).join("")}
+    ${m.deduct.map(x=>{const a=dAmt(m,x), g=dGov(m,x);
+      const sub=[x.mode==="pct"?`${fmt(+x.pct||0,(+x.pct||0)%1?2:0)}% ของ${esc(baseLabel(m,x.base))}`:"",
+        g?`รัฐสมทบ ${fmt(+x.gov,(+x.gov)%1?2:0)}% +฿${money(g)} · รวมเข้ากองทุน ฿${money(r2(a+g))}`:""].filter(Boolean).join(" · ");
+      return `<div class="line" data-s="ded:${x.id}"><div class="l">${x.link==="gpf"?`<span class="chk ${x.applied?"on":""}" data-s="dchk:${x.id}">✓</span>`:""}<div><div class="t">${esc(x.name)}</div>${sub?`<div class="small money">${sub}</div>`:""}</div></div><span class="r money down">−฿${money(a)}</span></div>`;}).join("")}
+    ${gov?`<div class="line" style="cursor:default"><span class="small">เงินสมทบจากรัฐ (ไม่ได้หักจากเงินเดือน)</span><span class="r money up">+฿${money(r2(gov))}</span></div>`:""}
     <button class="addline" data-s="addDed">+ เพิ่มรายการหัก</button>
   </div>
 
@@ -579,13 +597,41 @@ function renderSalary(){
         <span class="r money">฿${fmt(e.amt,e.amt%1?2:0)}</span></div>`;}).join("")
     :`<div class="line" style="cursor:default"><span class="small">ยังไม่มีรายจ่าย</span></div>`}
   </div>
-  <footer>เดือนใหม่จะคัดลอกแผนจากเดือนล่าสุดให้อัตโนมัติ (ไม่รวมรายจ่าย)<br>แตะ ☐ ในหมวดออม แล้วยอดจะถูกเพิ่มเข้าบัญชีหรือโหลในหน้าพอร์ตให้ทันที แตะซ้ำเพื่อยกเลิก</footer>`;
+  <footer>เดือนใหม่จะคัดลอกแผนจากเดือนล่าสุดให้อัตโนมัติ (ไม่รวมรายจ่าย)<br>แตะ ☐ ที่กบข.หรือหมวดออม แล้วยอดจะถูกเพิ่มเข้าบัญชีหรือโหลในหน้าพอร์ตให้ทันที แตะซ้ำเพื่อยกเลิก</footer>`;
 }
 
 function nameAmt(title,item,list){
   openSheet(title,[{label:"ชื่อรายการ",type:"text",value:item.name},{label:"จำนวนเงิน (บาท)",value:item.amt||"",focus:!item.name}],
     v=>{if(!v[0]){toast("ใส่ชื่อรายการก่อน");return false;} item.name=v[0]; item.amt=v[1]; if(!list.includes(item)) list.push(item);},
     list.includes(item)?()=>list.splice(list.indexOf(item),1):null);
+}
+/* ติ๊ก ✓ รายการหักที่ผูกกับกบข. → บวกยอดสะสม+สมทบเข้ายอดกบข.ในหน้าพอร์ต (แตะซ้ำเพื่อยกเลิก) */
+function applyDeduct(m,x,on){
+  if(on){ const a=r2(dAmt(m,x)+dGov(m,x)); S.gpf.balance=r2((+S.gpf.balance||0)+a); S.gpf.updated=today(); x.applied=true; x.appliedAmt=a; }
+  else  { S.gpf.balance=r2((+S.gpf.balance||0)-(+x.appliedAmt||0)); x.applied=false; x.appliedAmt=0; }
+}
+function deductSheet(m,x){
+  const isNew=!m.deduct.includes(x), mode=x.mode==="pct"?"pct":"amt";
+  const bases=[...m.income.map((i,k)=>({v:k===0?"":i.id,l:i.name||"รายรับ "+(k+1)})),{v:"all",l:"รายรับรวมทั้งหมด"}];
+  const curBase=x.base==="all"?"all":(m.income.findIndex(i=>i.id===x.base)>0?x.base:"");
+  openSheet(isNew?"เพิ่มรายการหัก":"รายการหัก",[
+    {label:"ชื่อรายการ",type:"text",value:x.name,focus:isNew},
+    {label:"วิธีคิด",type:"select",value:mode,options:[{v:"amt",l:"จำนวนเงินคงที่ (บาท)"},{v:"pct",l:"เปอร์เซ็นต์ (%)"}]},
+    {label:mode==="pct"?"เปอร์เซ็นต์ที่หัก (%)":"จำนวนเงิน (บาท)",value:(mode==="pct"?x.pct:x.amt)||""},
+    {label:"คิด % จาก",type:"select",value:curBase,options:bases},
+    {label:"เงินสมทบจากรัฐ/นายจ้าง (%)",value:x.gov||"",hint:"ไม่ได้หักจากเงินเดือน แค่แสดงยอดที่เข้าบัญชีเพิ่ม — กบข. รัฐสมทบ 3% + ชดเชย 2% ≈ 5% · ใส่ 0 ถ้าไม่มี"},
+    {label:"เมื่อติ๊ก ✓ ว่าเงินเข้าแล้ว",type:"select",value:x.link||"",options:[{v:"",l:"ไม่ต้องทำอะไร"},{v:"gpf",l:"บวกยอด (หัก+สมทบ) เข้ากบข.ในหน้าพอร์ต"}]}
+  ],v=>{
+    if(!v[0]){toast("ใส่ชื่อรายการก่อน");return false;}
+    const was=x.applied; if(was) applyDeduct(m,x,false);
+    x.name=v[0]; x.mode=v[1]; x.base=v[3]; x.gov=v[4]; x.link=v[5];
+    if(v[1]==="pct"){x.pct=v[2]; x.amt=0;} else {x.amt=v[2]; x.pct=0; x.gov=0;}
+    if(was&&x.link==="gpf") applyDeduct(m,x,true);
+    if(isNew) m.deduct.push(x);
+  }, isNew?null:()=>{ if(x.applied) applyDeduct(m,x,false); m.deduct.splice(m.deduct.indexOf(x),1); });
+  const sel=$("f1"), lbl=document.querySelector('label[for="f2"]'), baseF=$("f3").closest(".field"), govF=$("f4").closest(".field");
+  const sync=()=>{const p=sel.value==="pct"; lbl.textContent=p?"เปอร์เซ็นต์ที่หัก (%)":"จำนวนเงิน (บาท)"; baseF.hidden=!p; govF.hidden=!p;};
+  sel.onchange=()=>{$("f2").value=""; sync();}; sync();
 }
 function budgetSheet(m,b){
   const isNew=!m.budget.includes(b);
@@ -632,9 +678,13 @@ $("pageSalary").addEventListener("click",ev=>{
     applyBudget(b,!b.applied); save(); refresh();
     toast(b.applied?(target(b.link)?`เพิ่ม ฿${fmt(b.amt)} เข้า${linkLabel(b.link)}แล้ว`:"ทำเครื่องหมายว่าออมแล้ว"):"ยกเลิกแล้ว"); return;}
   if(a==="inc"){nameAmt("รายรับ",m.income.find(x=>x.id===id),m.income);return;}
-  if(a==="ded"){nameAmt("รายการหัก",m.deduct.find(x=>x.id===id),m.deduct);return;}
+  if(a==="dchk"){ev.stopPropagation(); const x=m.deduct.find(x=>x.id===id); if(!x) return;
+    if(!x.applied && !(dAmt(m,x)+dGov(m,x)>0)){toast("ใส่เงินเดือนก่อน");return;}
+    applyDeduct(m,x,!x.applied); save(); refresh();
+    toast(x.applied?`เพิ่ม ฿${money(x.appliedAmt)} เข้ากบข.แล้ว`:"ยกเลิกแล้ว"); return;}
+  if(a==="ded"){const x=m.deduct.find(x=>x.id===id); if(x) deductSheet(m,x); return;}
   if(a==="addInc"){nameAmt("เพิ่มรายรับ",{id:uid(),name:"",amt:0},m.income);return;}
-  if(a==="addDed"){nameAmt("เพิ่มรายการหัก",{id:uid(),name:"",amt:0},m.deduct);return;}
+  if(a==="addDed"){deductSheet(m,{id:uid(),name:"",amt:0,mode:"amt",pct:0,gov:0,base:"",link:""});return;}
   if(a==="bud"){const b=m.budget.find(x=>x.id===id); if(b) budgetSheet(m,b); return;}
   if(a==="addSave"){budgetSheet(m,{id:uid(),name:"",amt:0,link:"hi"});return;}
   if(a==="addSpend"){budgetSheet(m,{id:uid(),name:"",amt:0,link:""});return;}
