@@ -193,7 +193,8 @@ footer{margin-top:22px;font-size:11.5px;color:var(--muted);line-height:1.6;text-
     BTC และทองคำอัปเดตสดจาก Binance (ทองใช้ราคา PAXG ซึ่งอิงทองตลาดโลก)<br>
     ราคาทองบาทละ = คำนวณจากทองโลก × อัตราแลกเปลี่ยน (96.5%) ± ส่วนต่างที่ตั้งเอง<br>
     ราคาหุ้นไทย/ผลคัดหุ้น/สัญญาณ มาจากบอท Market Insight ทุกเช้า (ข้อมูลตลาดสาธารณะ)<br>
-    ข้อมูลพอร์ตเก็บไว้ในเครื่องนี้เท่านั้น · สำรองข้อมูลได้ที่ ⚙︎
+    ข้อมูลพอร์ตเก็บไว้ในเครื่องนี้เท่านั้น · สำรองข้อมูลได้ที่ ⚙︎<br>
+    <span id="appVer"></span>
   </footer>
 </div>
 <div id="pageSalary" hidden></div>
@@ -230,6 +231,7 @@ const DEFAULT = {
 const PLAN_DEFAULT = {gold:35, cash:10, btc:10, hospital:14, food:12, bank:10, reit:9, goldCap:50, band:5};
 const GROUPS = {hospital:"รพ./ยา", food:"อาหาร/อุปโภค", bank:"ธนาคาร", reit:"REIT/กองทุน"};
 const MKEY = "myPortfolio.market";
+const APP_VERSION = "2026.11.21-3";   // เปลี่ยนทุกครั้งที่แก้แอป เพื่อให้เครื่องรู้ว่ามีเวอร์ชันใหม่
 /* ---------- storage ---------- */
 function load(){
   try{const s=JSON.parse(localStorage.getItem(KEY)); if(s) return Object.assign(structuredClone(DEFAULT),s);}catch(e){}
@@ -900,6 +902,17 @@ document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>showTab(b.dat
 /* ---------- start ---------- */
 ensure(); render(); showTab(["salary","plan"].includes(S.tab)?S.tab:"port"); loadFx(); connect(); loadMarket();
 setInterval(loadMarket,30*60*1000);
+/* เช็กเวอร์ชันใหม่: มือถือ/GitHub Pages เก็บหน้าเก่าไว้ได้ ถ้าเจอเวอร์ชันใหม่ให้โหลดหน้าใหม่ด้วย URL ใหม่ (ไม่ใช้ของที่เก็บไว้) */
+async function checkUpdate(){
+  try{
+    const r=await fetch("index.html?t="+Date.now(),{cache:"no-store"}); if(!r.ok) return;
+    const m=(await r.text()).match(/APP_VERSION = "([^"]+)"/);
+    if(m && m[1]!==APP_VERSION){ toast("มีเวอร์ชันใหม่ กำลังโหลด…"); setTimeout(()=>location.replace("./?v="+encodeURIComponent(m[1])),800); }
+  }catch(e){}
+}
+$("appVer").textContent="เวอร์ชันแอป "+APP_VERSION;
+checkUpdate();
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden) checkUpdate(); });
 })();
 </script>
 </body>
