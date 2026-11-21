@@ -164,6 +164,7 @@ footer{margin-top:22px;font-size:11.5px;color:var(--muted);line-height:1.6;text-
       <div class="name"><div class="badge" style="background:#2a2140;color:var(--c-gpf)">กบข</div><div>กบข.<div class="small" id="gpfDate"></div></div></div>
       <div class="val money price" id="gpfVal">–</div>
     </div>
+    <div class="meta"><span id="gpfAlloc"></span></div>
   </div>
 
   <h2>เงินสำรอง</h2>
@@ -231,7 +232,11 @@ const DEFAULT = {
 const PLAN_DEFAULT = {gold:35, cash:10, btc:10, hospital:14, food:12, bank:10, reit:9, goldCap:50, band:5};
 const GROUPS = {hospital:"รพ./ยา", food:"อาหาร/อุปโภค", bank:"ธนาคาร", reit:"REIT/กองทุน"};
 const MKEY = "myPortfolio.market";
-const APP_VERSION = "2026.11.21-3";   // เปลี่ยนทุกครั้งที่แก้แอป เพื่อให้เครื่องรู้ว่ามีเวอร์ชันใหม่
+const APP_VERSION = "2026.11.21-4";
+/* ประเภทสินทรัพย์สำหรับมุมมองรวม (พอร์ตหลัก + กบข.) */
+const GPF_CLS = {thstock:"หุ้นไทย", fstock:"หุ้นต่างประเทศ", bond:"ตราสารหนี้", gold:"ทองคำ", prop:"อสังหาฯ/REIT ไทย", cash:"เงินฝาก/เงินสด"};
+const ALL_CLS = Object.assign({}, GPF_CLS, {btc:"Bitcoin"});
+const CLS_COLOR = {thstock:"--c-stock", fstock:"--c-gpf", bond:"--muted", gold:"--c-gold", prop:"--c-jar", cash:"--c-hi", btc:"--c-btc"};   // เปลี่ยนทุกครั้งที่แก้แอป เพื่อให้เครื่องรู้ว่ามีเวอร์ชันใหม่
 /* ---------- storage ---------- */
 function load(){
   try{const s=JSON.parse(localStorage.getItem(KEY)); if(s) return Object.assign(structuredClone(DEFAULT),s);}catch(e){}
@@ -341,6 +346,8 @@ function render(){
   });
   // Savings
   setText("gpfVal","฿"+fmt(S.gpf.balance)); setText("gpfDate", S.gpf.updated?"อัปเดต "+S.gpf.updated:"แตะเพื่อกรอกยอด");
+  const ga=Object.entries(S.gpf.alloc||{}).filter(([k,p])=>+p>0).sort((a,b)=>b[1]-a[1]);
+  setText("gpfAlloc", ga.length? ga.map(([k,p])=>`${GPF_CLS[k]} ${fmt(p,1)}%`).join(" · ") : "แตะเพื่อกรอกสัดส่วนแผนการลงทุน");
   setText("hiVal","฿"+fmt(S.hi.balance)); setText("hiRate", S.hi.rate?`ดอกเบี้ย ${fmt(S.hi.rate,2)}% ต่อปี`:"แตะเพื่อกรอกยอด");
   setText("hiInt", S.hi.rate? `≈ +฿${fmt(S.hi.balance*S.hi.rate/100)}/ปี`:"");
   setText("normalVal","฿"+fmt(S.normal.balance)); setText("normalDate", S.normal.updated?"อัปเดต "+S.normal.updated:"แตะเพื่อกรอกยอด");
@@ -420,7 +427,12 @@ document.addEventListener("click",e=>{
     {label:"ส่วนต่างราคา (บาท ต่อบาททอง)",value:S.gold.offset,hint:"ปรับให้ตรงกับราคารับซื้อร้านทอง/สมาคมฯ เช่น ถ้าแอปแสดงสูงกว่าราคาประกาศ 150 บาท ให้ใส่ -150"}
   ],v=>{S.gold.qty=v[0];S.gold.cost=v[1];S.gold.offset=v[2];});
   if(k==="stock"){const s=S.stocks[i]; openSheet("แก้ไขหุ้น "+s.sym,stockFields(s),v=>setStock(s,v),()=>S.stocks.splice(i,1));}
-  if(k==="gpf") openSheet("กบข.",[{label:"ยอดเงินสะสมรวม (บาท)",value:S.gpf.balance,hint:"ดูยอดจากแอป My GPF"}],v=>{S.gpf.balance=v[0];S.gpf.updated=today();});
+  if(k==="gpf"){ const ks=Object.keys(GPF_CLS);
+    openSheet("กบข.",[{label:"ยอดเงินสะสมรวม (บาท)",value:S.gpf.balance,hint:"ดูยอดจากแอป My GPF"}]
+      .concat(ks.map((c,j)=>({label:`สัดส่วน ${GPF_CLS[c]} (%)`,value:S.gpf.alloc[c]||"",ph:"0",hint:j===0?"ดูจาก My GPF → แผนการลงทุน ใส่ % ของแต่ละสินทรัพย์ (รวม 100)":""}))),
+    v=>{ const al={}; let t=0; ks.forEach((c,j)=>{al[c]=v[j+1]; t+=v[j+1];});
+      if(t && Math.abs(t-100)>0.6){ toast(`สัดส่วนรวม ${fmt(t,1)}% ต้องรวม 100%`); return false; }
+      S.gpf.balance=v[0]; S.gpf.alloc=al; S.gpf.updated=today(); }); }
   if(k==="hi") openSheet("บัญชีดอกเบี้ยสูง",[
     {label:"ยอดเงิน (บาท)",value:S.hi.balance},{label:"อัตราดอกเบี้ย (% ต่อปี)",value:S.hi.rate,hint:"ใช้ประมาณดอกเบี้ยต่อปี (ก่อนหักภาษี)"}
   ],v=>{S.hi.balance=v[0];S.hi.rate=v[1];S.hi.updated=today();});
@@ -518,7 +530,51 @@ function suggest(A){
   return {alloc:out, parked, v, T};
 }
 
-let lastSuggest=null;
+let lastSuggest=null, gpfSim=null;
+/* มุมมองรวม: พอร์ตหลัก + กบข. แยกตามประเภทสินทรัพย์ (ไม่รวมเงินในโหล) */
+function wholeExposure(alloc){
+  const v=catValues(), g=+S.gpf.balance||0, a=alloc||S.gpf.alloc||{};
+  const main={gold:v.gold, thstock:v.hospital+v.food+v.bank+v.other, prop:v.reit, fstock:0, bond:0, cash:v.cash, btc:v.btc};
+  const out={}; let total=0;
+  Object.keys(ALL_CLS).forEach(k=>{ const gp=g*(+a[k]||0)/100; out[k]={main:main[k]||0, gpf:gp, total:(main[k]||0)+gp}; total+=out[k].total; });
+  return {cls:out, total, gpf:g};
+}
+function wholeSection(){
+  const has=Object.values(S.gpf.alloc||{}).some(x=>+x>0);
+  let h=`<div class="sec"><h2>ภาพรวมเงินทั้งหมด (รวม กบข.)</h2><span class="small" data-act="gpfSim" style="cursor:pointer;color:var(--accent)">${gpfSim?"ล้างการจำลอง":"จำลองแผน กบข. ✎"}</span></div>`;
+  if(!+S.gpf.balance || !has) return h+`<div class="small" style="margin:0 4px">กรอกยอดและสัดส่วนแผนการลงทุน กบข. ที่การ์ด กบข. หน้าพอร์ตก่อน</div>`;
+  const now=wholeExposure(), sim=gpfSim?wholeExposure(gpfSim):null, T=now.total||1;
+  h+=`<div class="list">`;
+  Object.keys(ALL_CLS).sort((a,b)=>now.cls[b].total-now.cls[a].total).forEach(k=>{
+    const c=now.cls[k], p=c.total/T*100; if(!c.total && !(sim&&sim.cls[k].total)) return;
+    const ps=sim? sim.cls[k].total/(sim.total||1)*100 : null;
+    h+=`<div class="line full" style="cursor:default"><div class="row"><span>${esc(ALL_CLS[k])}</span>
+      <span class="money">${fmt(p,1)}%${sim?` <span class="small">→</span> <b class="${ps>p+0.05?"up":ps<p-0.05?"down":""}">${fmt(ps,1)}%</b>`:""}</span></div>
+      <div class="bar2"><div style="width:${Math.min(100,p)}%;background:var(${CLS_COLOR[k]})"></div></div>
+      <div class="meta"><span class="money">พอร์ตหลัก ฿${fmt(c.main)}</span><span class="money">กบข. ฿${fmt(c.gpf)}${sim?` → ฿${fmt(sim.cls[k].gpf)}`:""}</span></div></div>`;
+  });
+  h+=`</div>`;
+  // ข้อเท็จจริงจากตัวเลข (ไม่ใช่คำแนะนำ)
+  const top=Object.keys(ALL_CLS).reduce((a,k)=>now.cls[k].total>now.cls[a].total?k:a,"gold");
+  const zero=Object.keys(GPF_CLS).filter(k=>!now.cls[k].total).map(k=>GPF_CLS[k]);
+  const overlap=[];
+  if(now.cls.gold.main && now.cls.gold.gpf) overlap.push("ทองคำ");
+  if(now.cls.thstock.main && now.cls.thstock.gpf) overlap.push("หุ้นไทย");
+  if(now.cls.prop.main && now.cls.prop.gpf) overlap.push("อสังหาฯ/REIT");
+  h+=`<div class="small" style="margin:0 4px;line-height:1.6">ข้อเท็จจริงจากตัวเลข: สินทรัพย์ที่ใหญ่สุดคือ${esc(ALL_CLS[top])} ${fmt(now.cls[top].total/T*100,1)}% ของเงินทั้งหมด`
+    +(overlap.length?` · ถือซ้อนกันทั้งพอร์ตหลักและ กบข.: ${esc(overlap.join(", "))}`:"")
+    +(zero.length?` · ยังไม่มี: ${esc(zero.join(", "))}`:"")
+    +`<br>ไม่รวมเงินในโหล · กบข. เปลี่ยนแผนได้ตามเงื่อนไขของ กบข. (ตรวจใน My GPF) · การเลือกแผนเป็นการตัดสินใจของคุณ</div>`;
+  if(sim) h+=`<div class="note">กำลังแสดงผลจำลอง (ลูกศร = ถ้าเปลี่ยนแผน กบข. เป็นสัดส่วนที่ลองใส่) ยังไม่ได้เปลี่ยนอะไรจริง</div>`;
+  return h;
+}
+function gpfSimSheet(){
+  const ks=Object.keys(GPF_CLS), base=gpfSim||S.gpf.alloc;
+  openSheet("จำลองแผน กบข.",ks.map((c,j)=>({label:`${GPF_CLS[c]} (%)`,value:base[c]||"",ph:"0",hint:j===0?"ลองใส่สัดส่วนที่กำลังคิดจะเปลี่ยน (รวม 100) เพื่อดูภาพรวมทั้งหมด ไม่กระทบข้อมูลจริง":""})),v=>{
+    const t=v.reduce((a,b)=>a+b,0); if(Math.abs(t-100)>0.6){toast(`รวม ${fmt(t,1)}% ต้องรวม 100%`);return false;}
+    gpfSim=Object.fromEntries(ks.map((c,j)=>[c,v[j]]));
+  });
+}
 function renderPlan(){
   const el=$("pagePlan"), v=catValues(), p=S.plan, tot=v.total||1;
   const rows=[["gold",v.gold,p.gold],["stocks",v.stocks,stocksTarget()],["cash",v.cash,p.cash],["btc",v.btc,p.btc]];
@@ -540,6 +596,8 @@ function renderPlan(){
   });
   if(v.gold/tot*100>p.goldCap) h+=`<div class="note bad" style="margin:10px 0">ทองเกินเพดาน ${p.goldCap}% ของแผน</div>`;
   h+=`</div>`;
+
+  h+=wholeSection();
 
   // DCA
   h+=`<h2>เงินลงทุนรอบนี้ (DCA)</h2><div class="card" style="cursor:default">
@@ -626,6 +684,7 @@ $("pagePlan").addEventListener("click",ev=>{
     lastSuggest={A,r:suggest(A)}; renderPlan(); return; }
   if(a==="record"){ recordSheet(lastSuggest&&lastSuggest.r); return; }
   if(a==="editPlan"){ editPlanSheet(); return; }
+  if(a==="gpfSim"){ if(gpfSim){gpfSim=null;renderPlan();} else gpfSimSheet(); return; }
   if(a==="dca"){ const i=S.dca.findIndex(d=>d.id===t.dataset.id); if(i<0) return; const d=S.dca[i];
     openSheet("DCA "+thDate(d.date),[{label:"บันทึกเพิ่มเติม",type:"text",value:d.note||""}],v=>{d.note=v[0];},()=>S.dca.splice(i,1)); }
 });
@@ -642,6 +701,7 @@ function ensure(){
   }));
   S.jars.forEach(j=>{if(!j.id) j.id=uid();});
   S.plan = Object.assign({}, PLAN_DEFAULT, S.plan||{});
+  S.gpf.alloc = Object.assign(Object.fromEntries(Object.keys(GPF_CLS).map(k=>[k,0])), S.gpf.alloc||{});
   if(!Array.isArray(S.dca)) S.dca=[];
 }
 function monthKey(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");}
