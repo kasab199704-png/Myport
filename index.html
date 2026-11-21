@@ -103,6 +103,15 @@ h2{font-size:14px;color:var(--muted);font-weight:500;margin:22px 4px 8px}
 .sec{display:flex;justify-content:space-between;align-items:baseline}
 .sec h2{margin-right:auto}
 .sec .small{margin:22px 4px 8px}
+/* plan page */
+.bar2{position:relative;height:8px;background:var(--card2);border-radius:4px;margin-top:6px}
+.bar2 div{height:100%;border-radius:4px}
+.bar2 i{position:absolute;top:-3px;width:2px;height:14px;background:var(--text);opacity:.8}
+.tag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:8px;background:var(--card2);color:var(--muted);margin-left:4px}
+.tag.ok{background:rgba(46,204,143,.15);color:var(--up)}.tag.bad{background:rgba(255,92,108,.15);color:var(--down)}
+.inrow{display:flex;gap:8px;margin-top:10px}
+.inrow input{flex:1;background:var(--bg);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:11px 12px;font:inherit;font-size:16px;min-width:0}
+.inrow button{flex:none;border:0;border-radius:10px;padding:0 16px;font:inherit;font-weight:600;background:var(--accent);color:#1a1300;cursor:pointer}
 footer{margin-top:22px;font-size:11.5px;color:var(--muted);line-height:1.6;text-align:center}
 </style>
 </head>
@@ -183,13 +192,16 @@ footer{margin-top:22px;font-size:11.5px;color:var(--muted);line-height:1.6;text-
   <footer>
     BTC และทองคำอัปเดตสดจาก Binance (ทองใช้ราคา PAXG ซึ่งอิงทองตลาดโลก)<br>
     ราคาทองบาทละ = คำนวณจากทองโลก × อัตราแลกเปลี่ยน (96.5%) ± ส่วนต่างที่ตั้งเอง<br>
+    ราคาหุ้นไทย/ผลคัดหุ้น/สัญญาณ มาจากบอท Market Insight ทุกเช้า (ข้อมูลตลาดสาธารณะ)<br>
     ข้อมูลพอร์ตเก็บไว้ในเครื่องนี้เท่านั้น · สำรองข้อมูลได้ที่ ⚙︎
   </footer>
 </div>
 <div id="pageSalary" hidden></div>
+<div id="pagePlan" hidden></div>
 </div>
 <nav class="tabs">
   <button data-tab="port" class="on"><span class="ti">📊</span>พอร์ต</button>
+  <button data-tab="plan"><span class="ti">🎯</span>แผน/DCA</button>
   <button data-tab="salary"><span class="ti">💰</span>เงินเดือน</button>
 </nav>
 
@@ -211,8 +223,13 @@ const DEFAULT = {
   normal:{balance:0,updated:""},
   reserveGoal:60000,
   jars:[{name:"รถ",balance:0,goal:0},{name:"เที่ยว",balance:0,goal:0},{name:"ของใช้",balance:0,goal:0}],
-  fxManual:0, hidden:false, tab:"port", salary:{months:{}}
+  fxManual:0, hidden:false, tab:"port", salary:{months:{}},
+  plan:null, dca:[]
 };
+/* แผนพอร์ต (% ของพอร์ตที่บริหารเอง = ทอง + BTC + หุ้น + เงินสำรอง; ไม่รวม กบข. และเงินในโหล) */
+const PLAN_DEFAULT = {gold:35, cash:10, btc:10, hospital:14, food:12, bank:10, reit:9, goldCap:50, band:5};
+const GROUPS = {hospital:"รพ./ยา", food:"อาหาร/อุปโภค", bank:"ธนาคาร", reit:"REIT/กองทุน"};
+const MKEY = "myPortfolio.market";
 /* ---------- storage ---------- */
 function load(){
   try{const s=JSON.parse(localStorage.getItem(KEY)); if(s) return Object.assign(structuredClone(DEFAULT),s);}catch(e){}
@@ -309,13 +326,15 @@ function render(){
   let stockVal=0, stockCost=0;
   const sh=$("stocks"); sh.innerHTML="";
   S.stocks.forEach((s,i)=>{
-    const v=s.shares*s.price, c=s.shares*s.cost; stockVal+=v; stockCost+=c;
+    const sp=stockPx(s), info=mkStock(s.sym);
+    const v=s.shares*sp.price, c=s.shares*s.cost; stockVal+=v; stockCost+=c;
     const d=v-c, p=c?d/c*100:0;
     const div=document.createElement("div"); div.className="card"; div.dataset.edit="stock"; div.dataset.i=i;
     div.innerHTML=`<div class="row"><div class="name"><div class="badge" style="background:#152440;color:var(--c-stock);font-size:11px">${esc(s.sym.slice(0,5))}</div>
-      <div>${esc(s.sym)}<div class="small">${fmt(s.shares)} หุ้น · ราคา ฿${fmt(s.price,2)}</div></div></div>
+      <div>${esc(s.sym)}${info&&info.cat?`<span class="tag ${info.passed?"ok":"bad"}">${info.passed?"✅":"⚠️"} ${esc(info.cat)}</span>`:""}<div class="small">${fmt(s.shares)} หุ้น · ราคา ฿${fmt(sp.price,2)}</div></div></div>
       <div class="val"><div class="money price">฿${fmt(v)}</div>${c?`<div class="small money ${cls(d)}">${sign(d)}${fmt(d)} (${sign(p)}${fmt(p,1)}%)</div>`:""}</div></div>
-      <div class="meta"><span>ต้นทุนเฉลี่ย ฿${fmt(s.cost,2)}</span><span>ราคาอัปเดต ${esc(s.updated||"-")}</span></div>`;
+      <div class="meta"><span>ต้นทุนเฉลี่ย ฿${fmt(s.cost,2)}</span><span>${sp.auto?"ราคาอัตโนมัติ "+esc(thDate(sp.date)):"ราคาอัปเดต "+esc(s.updated||"-")}</span></div>
+      ${info&&!info.passed&&info.flag?`<div class="small" style="margin-top:6px">⚠️ ${esc(info.flag)}</div>`:""}`;
     sh.appendChild(div);
   });
   // Savings
@@ -410,14 +429,15 @@ function stockFields(s){return[
   {label:"ชื่อย่อหุ้น",type:"text",value:s.sym,ph:"เช่น KBANK"},
   {label:"จำนวนหุ้น",value:s.shares},
   {label:"ต้นทุนเฉลี่ยต่อหุ้น (บาท)",value:s.cost},
-  {label:"ราคาตลาดปัจจุบัน (บาท)",value:s.price,hint:"หุ้นไทยไม่มีแหล่งราคาสดฟรี ให้อัปเดตจากแอปโบรกเกอร์เป็นระยะ"}
+  {label:"ราคาตลาดปัจจุบัน (บาท)",value:s.price,hint:"ถ้าหุ้นนี้อยู่ในข้อมูลจากบอท ราคาจะอัปเดตเองทุกเช้า ช่องนี้ใช้สำรองเมื่อไม่มีข้อมูล"},
+  {label:"กลุ่มตามแผน",type:"select",value:s.group||"",options:[{v:"",l:"อัตโนมัติ (จากข้อมูลบอท)"}].concat(Object.entries(GROUPS).map(([k,l])=>({v:k,l}))).concat([{v:"other",l:"อื่นๆ (นอกแผน)"}])}
 ];}
 function setStock(s,v){ if(!v[0]){toast("ใส่ชื่อหุ้นก่อน");return false;}
-  const priceChanged = v[3]!==s.price; s.sym=v[0].toUpperCase();s.shares=v[1];s.cost=v[2];s.price=v[3]; if(priceChanged||!s.updated) s.updated=today(); }
+  const priceChanged = v[3]!==s.price; s.sym=v[0].toUpperCase().replace(/\.BK$/,"");s.shares=v[1];s.cost=v[2];s.price=v[3];s.group=v[4]; if(priceChanged||!s.updated) s.updated=today(); }
 function jarFields(j){return[
   {label:"ชื่อโหล",type:"text",value:j.name},{label:"ยอดเงินในโหล (บาท)",value:j.balance},{label:"เป้าหมาย (บาท)",value:j.goal,hint:"ใส่ 0 ถ้าไม่มีเป้า"}
 ];}
-$("addStock").onclick=()=>{const s={sym:"",shares:0,cost:0,price:0,updated:""};
+$("addStock").onclick=()=>{const s={sym:"",shares:0,cost:0,price:0,updated:"",group:""};
   openSheet("เพิ่มหุ้น",stockFields(s),v=>{if(setStock(s,v)===false)return false;S.stocks.push(s);});};
 $("addJar").onclick=()=>{const j={name:"",balance:0,goal:0};
   openSheet("เพิ่มโหล",jarFields(j),v=>{if(!v[0]){toast("ใส่ชื่อโหลก่อน");return false;}j.name=v[0];j.balance=v[1];j.goal=v[2];j.id=uid();S.jars.push(j);});};
@@ -438,6 +458,171 @@ $("btnSettings").onclick=()=>{
 };
 
 
+/* ---------- market data from Market Insight bot (public market data only) ---------- */
+let MK = (()=>{try{return JSON.parse(localStorage.getItem(MKEY))||null;}catch(e){return null;}})();
+async function loadMarket(){
+  try{
+    const r = await fetch("market.json?t="+Date.now(),{cache:"no-store"});
+    if(r.ok){ MK = await r.json(); try{localStorage.setItem(MKEY,JSON.stringify(MK));}catch(e){} }
+  }catch(e){}
+  refresh();
+}
+function mkStock(sym){ return MK&&MK.stocks? MK.stocks[String(sym||"").toUpperCase()]||null : null; }
+function stockPx(s){ const m=mkStock(s.sym); return (m&&m.price)? {price:m.price,auto:true,date:m.date} : {price:+s.price||0,auto:false}; }
+function stockGroup(s){ if(s.group) return s.group; const m=mkStock(s.sym); return (m&&m.group)||"other"; }
+function thDate(iso){ if(!iso) return "-"; const d=new Date(iso); return isNaN(d)?iso:d.toLocaleDateString("th-TH",{day:"numeric",month:"short"}); }
+
+/* มูลค่าแยกตามหมวดของแผน (ไม่รวม กบข. และเงินในโหล) */
+function catValues(){
+  const v={gold:S.gold.qty*goldPerBaht(), btc:S.btc.qty*P.btcUsd*fx(), cash:+S.hi.balance + +S.normal.balance,
+           hospital:0, food:0, bank:0, reit:0, other:0};
+  S.stocks.forEach(s=>{ const g=stockGroup(s); v[g in v?g:"other"] += s.shares*stockPx(s).price; });
+  v.stocks = v.hospital+v.food+v.bank+v.reit+v.other;
+  v.total = v.gold+v.btc+v.cash+v.stocks;
+  v.ready = !!(goldPerBaht() && P.btcUsd && fx());
+  return v;
+}
+const CAT_LABEL = Object.assign({cash:"เงินสำรอง", gold:"ทองคำ", btc:"Bitcoin"}, GROUPS);
+const CAT_COLOR = {cash:"--c-hi", gold:"--c-gold", btc:"--c-btc", hospital:"--c-stock", food:"--c-stock", bank:"--c-stock", reit:"--c-stock"};
+function stocksTarget(){ return Object.keys(GROUPS).reduce((t,k)=>t+(+S.plan[k]||0),0); }
+
+/* สถานะสัญญาณตามกติกาผู้ใช้ (มวลชนบอกเหตุ → CDC กลับตัว) จากบอท */
+function signalOf(asset){ return MK&&MK.assets? MK.assets[asset]||null : null; }
+
+/* เสนอการแบ่งเงินตามส่วนที่ยังขาดจากเป้า (คำนวณตามแผนของผู้ใช้เอง ไม่ใช่คำแนะนำลงทุน) */
+function suggest(A){
+  const v=catValues(), T=v.total+A, keys=["cash","gold","btc"].concat(Object.keys(GROUPS));
+  const gap={}; let G=0;
+  keys.forEach(k=>{ const tgt=(+S.plan[k]||0)/100*T; gap[k]=Math.max(0,tgt-v[k]); G+=gap[k]; });
+  if(v.total && v.gold/v.total*100 >= S.plan.goldCap) gap.gold=0;
+  G=keys.reduce((t,k)=>t+gap[k],0);
+  const out={};
+  keys.forEach(k=>{ out[k] = G>=A ? A*gap[k]/(G||1) : gap[k] + (A-G)*(+S.plan[k]||0)/100; });
+  // ทอง/BTC: เข้าตามสัญญาณเท่านั้น ถ้ายังไม่ครบ ให้พักเป็นเงินสด (กระสุนรอ)
+  const parked={};
+  ["gold","btc"].forEach(k=>{
+    const sig=signalOf(k==="gold"?"Gold":"BTC");
+    if(out[k]>0 && !(sig&&sig.rule_met)){ parked[k]=out[k]; out.cash+=out[k]; out[k]=0; }
+  });
+  // ปัดเป็นหลักสิบ แล้วโยนเศษให้รายการที่ใหญ่สุด
+  let sum=0; keys.forEach(k=>{ out[k]=Math.round(out[k]/10)*10; sum+=out[k]; });
+  const big=keys.reduce((a,k)=>out[k]>out[a]?k:a,keys[0]); out[big]+=A-sum;
+  return {alloc:out, parked, v, T};
+}
+
+let lastSuggest=null;
+function renderPlan(){
+  const el=$("pagePlan"), v=catValues(), p=S.plan, tot=v.total||1;
+  const rows=[["gold",v.gold,p.gold],["stocks",v.stocks,stocksTarget()],["cash",v.cash,p.cash],["btc",v.btc,p.btc]];
+  const row=(label,val,tgt,color,sub)=>{
+    const cur=val/tot*100, diff=tgt/100*tot-val, off=Math.abs(cur-tgt)>p.band;
+    return `<div class="line full"${sub?' style="padding-left:14px"':""}><div class="row"><span>${esc(label)}${off?' <span class="tag bad">ห่างเป้า</span>':""}</span>
+      <span class="money">${fmt(cur,1)}% <span class="small">/ ${fmt(tgt,0)}%</span></span></div>
+      <div class="bar2"><div style="width:${Math.min(100,cur)}%;background:var(${color})"></div><i style="left:${Math.min(100,tgt)}%"></i></div>
+      <div class="meta"><span class="money">฿${fmt(val)}</span><span class="money">${diff>=0?"ขาดอีก":"เกินเป้า"} ฿${fmt(Math.abs(diff))}</span></div></div>`;
+  };
+  let h=`<section class="hero"><div class="lbl">พอร์ตที่บริหารเอง (ไม่รวม กบข./เงินในโหล)</div>
+    <div class="total money price">฿${fmt(v.total)}</div>
+    <div class="sub small">${v.ready?"เส้นขาว = เป้าหมาย · ห่างเกิน "+p.band+" จุด = ห่างเป้า":"รอราคา BTC/ทองจาก Binance…"}</div></section>`;
+  h+=`<div class="sec"><h2>สัดส่วนเทียบแผน</h2><span class="small" data-act="editPlan" style="cursor:pointer;color:var(--accent)">แก้แผน ✎</span></div><div class="list">`;
+  rows.forEach(([k,val,tgt])=>{
+    h+=row(k==="stocks"?"หุ้นปันผล":CAT_LABEL[k],val,tgt,k==="stocks"?"--c-stock":CAT_COLOR[k]);
+    if(k==="stocks"){ Object.keys(GROUPS).forEach(g=>{ h+=row(GROUPS[g],v[g],p[g],"--c-stock",true); });
+      if(v.other) h+=`<div class="line full" style="padding-left:14px"><div class="row"><span>หุ้นนอกแผน</span><span class="money">${fmt(v.other/tot*100,1)}%</span></div></div>`; }
+  });
+  if(v.gold/tot*100>p.goldCap) h+=`<div class="note bad" style="margin:10px 0">ทองเกินเพดาน ${p.goldCap}% ของแผน</div>`;
+  h+=`</div>`;
+
+  // DCA
+  h+=`<h2>เงินลงทุนรอบนี้ (DCA)</h2><div class="card" style="cursor:default">
+    <div class="small">ใส่ยอดเงิน แอปจะแบ่งตามส่วนที่ยังขาดจากแผน แล้วคุณตัดสินใจเองก่อนบันทึก</div>
+    <div class="inrow"><input id="dcaAmt" inputmode="decimal" placeholder="เช่น 1000" value="${lastSuggest?lastSuggest.A:""}"><button data-act="calc">คำนวณ</button></div>`;
+  if(lastSuggest){
+    const {alloc,parked}=lastSuggest.r;
+    h+=`<div style="margin-top:12px">`+Object.entries(alloc).filter(([k,a])=>a>0).map(([k,a])=>{
+      let why="";
+      if(k==="cash" && (parked.gold||parked.btc)) why=Object.keys(parked).map(x=>`พักเงินส่วนของ${CAT_LABEL[x]} ฿${fmt(parked[x])} รอสัญญาณ`).join(" · ");
+      return `<div class="row" style="padding:6px 0"><span>${esc(CAT_LABEL[k])}${why?`<div class="small">${esc(why)}</div>`:""}</span><b class="money">฿${fmt(a)}</b></div>`;
+    }).join("")+`</div>`;
+    ["gold","btc"].forEach(k=>{ if(parked[k]){ const s=signalOf(k==="gold"?"Gold":"BTC");
+      h+=`<div class="note">${esc(CAT_LABEL[k])}: สัญญาณตามกติกาคุณยังไม่ครบ${s?` (มวลชน ${esc(s.crowd_label||"-")}, CDC ${esc(s.cdc_emoji||s.cdc||"-")})`:" (ยังไม่มีข้อมูลจากบอท)"} จึงพักไว้เป็นเงินสด</div>`; }});
+    h+=`<button class="fab" data-act="record" style="margin-top:12px">บันทึกตามที่ฉันตัดสินใจ</button>
+      <div class="hint">ตัวเลขข้างบนคือการคำนวณตามแผนของคุณ ไม่ใช่คำแนะนำลงทุน แก้ได้ก่อนบันทึก</div>`;
+  }
+  h+=`</div>`;
+
+  // signals
+  const sig=["Gold","BTC"].map(a=>[a,signalOf(a)]);
+  h+=`<h2>สัญญาณตามกติกาของคุณ (มวลชน → CDC)</h2><div class="list">`;
+  sig.forEach(([a,s])=>{
+    h+=`<div class="line full" style="cursor:default"><div class="row"><span>${a==="Gold"?"ทองคำ":"Bitcoin"}</span>
+      <span>${s?(s.rule_met?'<span class="tag ok">🎯 ครบเงื่อนไข</span>':'<span class="tag">ยังไม่ครบ</span>'):'<span class="small">ไม่มีข้อมูล</span>'}</span></div>
+      ${s?`<div class="small">CDC ${esc(s.cdc_emoji||"")} ${esc(s.cdc_th||s.cdc||"")} · มวลชน ${esc(s.crowd_label||"-")} (โทน ${s.crowd_tone>0?"+":""}${s.crowd_tone??"-"})${s.fng?` · F&G ${s.fng}`:""}</div>`:""}</div>`;
+  });
+  h+=`</div>`;
+
+  // screener
+  if(MK&&MK.stocks){
+    h+=`<h2>หุ้นที่ผ่านเกณฑ์ปันผล (Peter Lynch)</h2><div class="list">`;
+    Object.entries(GROUPS).forEach(([g,label])=>{
+      const ok=Object.entries(MK.stocks).filter(([s,m])=>m.group===g&&m.passed).sort((a,b)=>(b[1].yield||0)-(a[1].yield||0));
+      h+=`<div class="line full" style="cursor:default"><div class="small">${esc(label)}</div>
+        <div style="margin-top:4px">${ok.length?ok.map(([s,m])=>`<span class="tag ok" style="margin:2px 4px 2px 0">${esc(s)} ${fmt(m.yield||0,1)}%</span>`).join(""):'<span class="small">ไม่มีตัวที่ผ่าน</span>'}</div></div>`;
+    });
+    h+=`</div><div class="small" style="margin:0 4px">✅ = ปันผลผ่านเกณฑ์ความปลอดภัย (ไม่ได้ประเมินว่าราคาถูก/แพง) · % = ปันผลปกติ · คัดเมื่อ ${esc(thDate(MK.screened||MK.updated))}</div>`;
+  }
+
+  // history
+  h+=`<h2>ประวัติ DCA</h2>`;
+  if(S.dca.length){
+    const sumBy={}; S.dca.forEach(d=>Object.entries(d.alloc||{}).forEach(([k,a])=>sumBy[k]=(sumBy[k]||0)+ +a));
+    h+=`<div class="list">`+S.dca.slice(0,24).map(d=>`<div class="line full" data-act="dca" data-id="${d.id}"><div class="row"><span>${esc(thDate(d.date))}</span><b class="money">฿${fmt(d.amount)}</b></div>
+      <div class="small money">${Object.entries(d.alloc||{}).filter(([k,a])=>+a).map(([k,a])=>`${esc(CAT_LABEL[k]||k)} ${fmt(a)}`).join(" · ")}${d.note?" · "+esc(d.note):""}</div></div>`).join("")+`</div>
+      <div class="small money" style="margin:0 4px">รวมทั้งหมด: ${Object.entries(sumBy).filter(([k,a])=>a).map(([k,a])=>`${esc(CAT_LABEL[k]||k)} ฿${fmt(a)}`).join(" · ")}</div>`;
+  } else h+=`<div class="small" style="margin:0 4px">ยังไม่มีประวัติ</div>`;
+  h+=`<footer>ข้อมูลตลาด: ${MK?esc(thDate(MK.updated)):"ยังไม่มี (รอบอทส่งข้อมูล)"} · แผนและประวัติเก็บในเครื่องนี้เท่านั้น<br>แอปคำนวณตามสัดส่วนที่คุณตั้งเอง การตัดสินใจลงทุนเป็นของคุณ</footer>`;
+  el.innerHTML=h;
+}
+
+function recordSheet(r){
+  const keys=["cash","gold","btc"].concat(Object.keys(GROUPS));
+  // ช่องเริ่มว่าง (กรอกเฉพาะที่ตัดสินใจลงจริง) แสดงตัวเลขตามแผนเป็นคำแนะนำในช่อง
+  const fields=keys.map(k=>{ const s=r?r.alloc[k]||0:0;
+    return {label:CAT_LABEL[k]+" (บาท)", value:"", ph:s?`ตามแผน ${fmt(s)}`:"0"}; });
+  fields.push({label:"วันที่",type:"date",value:isoToday()},{label:"บันทึกเพิ่มเติม",type:"text",value:"",ph:"เช่น ซื้อ BDMS 100 หุ้น"});
+  openSheet("บันทึก DCA ตามที่ตัดสินใจ",fields,v=>{
+    const alloc={}; let amt=0; keys.forEach((k,i)=>{ if(+v[i]){alloc[k]=+v[i]; amt+=+v[i];} });
+    if(!amt){toast("ใส่ยอดอย่างน้อย 1 รายการ");return false;}
+    S.dca.unshift({id:uid(),date:v[keys.length]||isoToday(),amount:amt,alloc,note:v[keys.length+1]||""});
+    lastSuggest=null; toast(`บันทึก ฿${fmt(amt)} แล้ว · อย่าลืมอัปเดตยอดในหน้าพอร์ตเมื่อซื้อจริง`);
+  });
+  if(r){ const b=document.createElement("button"); b.className="btn"; b.style.margin="0 0 12px"; b.style.width="100%";
+    b.textContent="เติมตัวเลขตามแผนทั้งหมด";
+    b.onclick=()=>keys.forEach((k,i)=>{ $("f"+i).value = r.alloc[k]||""; });
+    $("sheet").insertBefore(b,$("sheet").children[1]); }
+}
+function editPlanSheet(){
+  const keys=["gold","cash","btc"].concat(Object.keys(GROUPS));
+  const fields=keys.map(k=>({label:(GROUPS[k]?"หุ้น: ":"")+CAT_LABEL[k]+" (% เป้าหมาย)",value:S.plan[k]}));
+  fields.push({label:"เพดานทองคำ (%)",value:S.plan.goldCap},{label:"เตือนเมื่อห่างเป้าเกิน (จุด %)",value:S.plan.band});
+  openSheet("แผนสัดส่วนพอร์ต",fields,v=>{
+    const sum=keys.reduce((t,k,i)=>t+v[i],0);
+    if(Math.abs(sum-100)>0.01){toast(`รวมได้ ${fmt(sum,1)}% ต้องรวม 100%`);return false;}
+    keys.forEach((k,i)=>S.plan[k]=v[i]); S.plan.goldCap=v[keys.length]; S.plan.band=v[keys.length+1]||5;
+  });
+}
+$("pagePlan").addEventListener("click",ev=>{
+  const t=ev.target.closest("[data-act]"); if(!t) return; const a=t.dataset.act;
+  if(a==="calc"){ const A=num($("dcaAmt").value); if(!A){toast("ใส่ยอดเงินก่อน");return;}
+    if(!catValues().ready){toast("รอราคา BTC/ทองสักครู่");return;}
+    lastSuggest={A,r:suggest(A)}; renderPlan(); return; }
+  if(a==="record"){ recordSheet(lastSuggest&&lastSuggest.r); return; }
+  if(a==="editPlan"){ editPlanSheet(); return; }
+  if(a==="dca"){ const i=S.dca.findIndex(d=>d.id===t.dataset.id); if(i<0) return; const d=S.dca[i];
+    openSheet("DCA "+thDate(d.date),[{label:"บันทึกเพิ่มเติม",type:"text",value:d.note||""}],v=>{d.note=v[0];},()=>S.dca.splice(i,1)); }
+});
+$("pagePlan").addEventListener("keydown",ev=>{ if(ev.key==="Enter" && ev.target.id==="dcaAmt"){ ev.preventDefault(); $("pagePlan").querySelector('[data-act="calc"]').click(); }});
+
 /* ---------- salary page ---------- */
 const TH_MONTH=["มกราคม","กุมภาพันธ์","มีนาคม","เมษายน","พฤษภาคม","มิถุนายน","กรกฎาคม","สิงหาคม","กันยายน","ตุลาคม","พฤศจิกายน","ธันวาคม"];
 function uid(){return Math.random().toString(36).slice(2,9);}
@@ -448,6 +633,8 @@ function ensure(){
     if(x.link===undefined) x.link=/กบข/.test(x.name)?"gpf":"";
   }));
   S.jars.forEach(j=>{if(!j.id) j.id=uid();});
+  S.plan = Object.assign({}, PLAN_DEFAULT, S.plan||{});
+  if(!Array.isArray(S.dca)) S.dca=[];
 }
 function monthKey(d){return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");}
 function shiftMonth(k,n){const [y,m]=k.split("-").map(Number);return monthKey(new Date(y,m-1+n,1));}
@@ -692,19 +879,21 @@ $("pageSalary").addEventListener("click",ev=>{
   if(a==="exp"){const e=m.expenses.find(x=>x.id===id); if(e) expenseSheet(m,e); return;}
 });
 
-function refresh(){ ensure(); render(); if(S.tab==="salary") renderSalary(); }
+function refresh(){ ensure(); render(); if(S.tab==="salary") renderSalary(); if(S.tab==="plan") renderPlan(); }
 function showTab(t){
   S.tab=t; save();
-  $("pagePort").hidden=t!=="port"; $("pageSalary").hidden=t!=="salary";
+  $("pagePort").hidden=t!=="port"; $("pageSalary").hidden=t!=="salary"; $("pagePlan").hidden=t!=="plan";
   document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
-  $("pageTitle").textContent=t==="salary"?"เงินเดือน":"พอร์ตของฉัน";
+  $("pageTitle").textContent=t==="salary"?"เงินเดือน":t==="plan"?"แผน & DCA":"พอร์ตของฉัน";
   if(t==="salary") renderSalary();
+  if(t==="plan") renderPlan();
   window.scrollTo(0,0);
 }
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 
 /* ---------- start ---------- */
-ensure(); render(); showTab(S.tab==="salary"?"salary":"port"); loadFx(); connect();
+ensure(); render(); showTab(["salary","plan"].includes(S.tab)?S.tab:"port"); loadFx(); connect(); loadMarket();
+setInterval(loadMarket,30*60*1000);
 })();
 </script>
 </body>
