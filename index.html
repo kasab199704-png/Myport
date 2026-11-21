@@ -331,7 +331,7 @@ function render(){
     const d=v-c, p=c?d/c*100:0;
     const div=document.createElement("div"); div.className="card"; div.dataset.edit="stock"; div.dataset.i=i;
     div.innerHTML=`<div class="row"><div class="name"><div class="badge" style="background:#152440;color:var(--c-stock);font-size:11px">${esc(s.sym.slice(0,5))}</div>
-      <div>${esc(s.sym)}${info&&info.cat?`<span class="tag ${info.passed?"ok":"bad"}">${info.passed?"✅":"⚠️"} ${esc(info.cat)}</span>`:""}<div class="small">${fmt(s.shares)} หุ้น · ราคา ฿${fmt(sp.price,2)}</div></div></div>
+      <div>${esc(s.sym)}${info&&info.cat?`<span class="tag ${info.passed?"ok":"bad"}">${info.passed?"✅":"⚠️"} ${esc(info.cat)}</span>`:""}<div class="small">${fmt(s.shares)} หุ้น · ราคา ฿${fmt(sp.price,2)}${cdcTxt(info)?` · <span style="white-space:nowrap">CDC ${cdcTxt(info)}</span>`:""}</div></div></div>
       <div class="val"><div class="money price">฿${fmt(v)}</div>${c?`<div class="small money ${cls(d)}">${sign(d)}${fmt(d)} (${sign(p)}${fmt(p,1)}%)</div>`:""}</div></div>
       <div class="meta"><span>ต้นทุนเฉลี่ย ฿${fmt(s.cost,2)}</span><span>${sp.auto?"ราคาอัตโนมัติ "+esc(thDate(sp.date)):"ราคาอัปเดต "+esc(s.updated||"-")}</span></div>
       ${info&&!info.passed&&info.flag?`<div class="small" style="margin-top:6px">⚠️ ${esc(info.flag)}</div>`:""}`;
@@ -467,6 +467,12 @@ async function loadMarket(){
   }catch(e){}
   refresh();
 }
+const ZE={GREEN:"🟢",YELLOW:"🟡",RED:"🔴",BLUE:"🔵"};
+/* สี CDC ของหุ้น: D = รายวัน, W = รายสัปดาห์, ⚡ = เพิ่งเปลี่ยนสี */
+function cdcTxt(m){ if(!m) return ""; const p=[];
+  if(m.cdc_d) p.push("D"+(ZE[m.cdc_d]||"")+(m.cdc_d_chg?"⚡":""));
+  if(m.cdc_w) p.push("W"+(ZE[m.cdc_w]||"")+(m.cdc_w_chg?"⚡":""));
+  return p.join(" "); }
 function mkStock(sym){ return MK&&MK.stocks? MK.stocks[String(sym||"").toUpperCase()]||null : null; }
 function stockPx(s){ const m=mkStock(s.sym); return (m&&m.price)? {price:m.price,auto:true,date:m.date} : {price:+s.price||0,auto:false}; }
 function stockGroup(s){ if(s.group) return s.group; const m=mkStock(s.sym); return (m&&m.group)||"other"; }
@@ -567,9 +573,9 @@ function renderPlan(){
     Object.entries(GROUPS).forEach(([g,label])=>{
       const ok=Object.entries(MK.stocks).filter(([s,m])=>m.group===g&&m.passed).sort((a,b)=>(b[1].yield||0)-(a[1].yield||0));
       h+=`<div class="line full" style="cursor:default"><div class="small">${esc(label)}</div>
-        <div style="margin-top:4px">${ok.length?ok.map(([s,m])=>`<span class="tag ok" style="margin:2px 4px 2px 0">${esc(s)} ${fmt(m.yield||0,1)}%</span>`).join(""):'<span class="small">ไม่มีตัวที่ผ่าน</span>'}</div></div>`;
+        <div style="margin-top:4px">${ok.length?ok.map(([s,m])=>`<span class="tag ok" style="margin:2px 4px 2px 0">${esc(s)} ${fmt(m.yield||0,1)}% ${cdcTxt(m)}</span>`).join(""):'<span class="small">ไม่มีตัวที่ผ่าน</span>'}</div></div>`;
     });
-    h+=`</div><div class="small" style="margin:0 4px">✅ = ปันผลผ่านเกณฑ์ความปลอดภัย (ไม่ได้ประเมินว่าราคาถูก/แพง) · % = ปันผลปกติ · คัดเมื่อ ${esc(thDate(MK.screened||MK.updated))}</div>`;
+    h+=`</div><div class="small" style="margin:0 4px">✅ = ปันผลผ่านเกณฑ์ความปลอดภัย (ไม่ได้ประเมินว่าราคาถูก/แพง) · % = ปันผลปกติ · CDC D = รายวัน, W = รายสัปดาห์ (สัปดาห์นี้ยังไม่ปิด), ⚡ = เพิ่งเปลี่ยนสี · คัดเมื่อ ${esc(thDate(MK.screened||MK.updated))}</div>`;
   }
 
   // history
