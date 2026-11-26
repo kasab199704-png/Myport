@@ -111,6 +111,7 @@ h2{font-size:14px;color:var(--muted);font-weight:500;margin:22px 4px 8px}
 .tag.ok{background:rgba(46,204,143,.15);color:var(--up)}.tag.bad{background:rgba(255,92,108,.15);color:var(--down)}
 .inrow{display:flex;gap:8px;margin-top:10px}
 .inrow input{flex:1;background:var(--bg);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:11px 12px;font:inherit;font-size:16px;min-width:0}
+.inrow select{background:var(--bg);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:0 8px;font:inherit;font-size:16px}
 .inrow button{flex:none;border:0;border-radius:10px;padding:0 16px;font:inherit;font-weight:600;background:var(--accent);color:#1a1300;cursor:pointer}
 footer{margin-top:22px;font-size:11.5px;color:var(--muted);line-height:1.6;text-align:center}
 </style>
@@ -234,7 +235,7 @@ const DEFAULT = {
 const PLAN_DEFAULT = {gold:35, cash:10, btc:10, hospital:14, food:12, bank:10, reit:9, goldCap:50, band:5};
 const GROUPS = {hospital:"รพ./ยา", food:"อาหาร/อุปโภค", bank:"ธนาคาร", reit:"REIT/กองทุน"};
 const MKEY = "myPortfolio.market";
-const APP_VERSION = "2026.11.26-1";
+const APP_VERSION = "2026.11.26-2";
 /* ประเภทสินทรัพย์สำหรับมุมมองรวม (พอร์ตหลัก + กบข.) */
 const GPF_CLS = {thstock:"หุ้นไทย", fstock:"หุ้นต่างประเทศ", bond:"ตราสารหนี้", gold:"ทองคำ", prop:"อสังหาฯ/REIT ไทย", cash:"เงินฝาก/เงินสด"};
 const ALL_CLS = Object.assign({}, GPF_CLS, {btc:"Bitcoin"});
@@ -533,6 +534,7 @@ function riskOf(w){
 function stackBar(obj){ return `<div class="alloc" style="margin:6px 0 2px">${RC_CATS.filter(c=>obj[c]>0.003).map(c=>`<div style="width:${obj[c]*100}%;background:var(${RC_COLOR[c]})"></div>`).join("")}</div>`; }
 function renderToday(){
   const el=$("pageToday"), T=MK&&MK.today; let h="";
+  const keep={}; ["tzA","tzR","tzS"].forEach(id=>{ const e=$(id); if(e) keep[id]=e.value; });  // ไม่ล้างช่องที่กำลังกรอก
   // 1) ตลาดวันนี้
   if(T){
     const st=T.stress;
@@ -586,6 +588,7 @@ function renderToday(){
           ${miss?`<div class="small">ไม่มีข้อมูล BTC ช่วงนั้น (นับ BTC = 0%)</div>`:""}</div>`; });
       h+=`</div><div class="small" style="margin:0 4px;line-height:1.6">คิดจากสัดส่วนพอร์ตในเครื่องนี้ × ผลตอบแทนจริงช่วงนั้น (ทอง/BTC เป็นเงินบาท, หุ้นปันผลใช้กองทุน 1DIV แทน) เหตุการณ์ใหม่จะไม่เหมือนเดิมทุกครั้ง</div>`;
     }
+    h+=volSizingSection(v);
     // ห่างแผน
     const tot=v.total, gaps=[["gold",v.gold,+S.plan.gold],["stocks",v.stocks,stocksTarget()],["cash",v.cash,+S.plan.cash],["btc",v.btc,+S.plan.btc]]
       .map(([k,val,t])=>[k,val/tot*100-t]).filter(([k,d])=>Math.abs(d)>S.plan.band).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]));
@@ -594,18 +597,72 @@ function renderToday(){
   } else if(MK&&MK.risk) h+=`<h2>ความเสี่ยงของพอร์ตคุณ</h2><div class="small" style="margin:0 4px">${v.ready?"กรอกยอดในแท็บพอร์ตก่อน":"รอราคา BTC/ทองสักครู่…"}</div>`;
   h+=`<footer>สรุปตลาดมาจากบอททุกเช้า · ตัวเลขพอร์ตคำนวณในเครื่องนี้เท่านั้น<br>เป็นสถานะและข้อมูลประกอบ ไม่ใช่คำแนะนำซื้อขาย การตัดสินใจเป็นของคุณ</footer>`;
   el.innerHTML=h;
+  Object.entries(keep).forEach(([id,v])=>{ const e=$(id); if(e) e.value=v; }); if(keep.tzR) calcTrade();
 }
+const VS_CAT={gold:["gold"],stocks:Object.keys(GROUPS),btc:["btc"]};
+function volSizingSection(v){
+  const vs=volScale(); if(!vs) return "";
+  const P=planTargets(true), tot=v.total||1;
+  let h=`<h2>ปรับขนาดตามความผันผวน</h2><div class="list">`;
+  ["gold","stocks","btc"].forEach(c=>{ const x=vs[c]; if(!x) return;
+    const plan=VS_CAT[c].reduce((t,k)=>t+(+S.plan[k]||0),0), adj=VS_CAT[c].reduce((t,k)=>t+P[k],0), cur=(c==="stocks"?v.stocks:v[c])/tot*100;
+    const hot=x.ratio>1.1;
+    h+=`<div class="line full" style="cursor:default"><div class="row"><span>${esc(RC_NAME[c])}</span>
+      <span class="tag ${hot?"bad":""}">${hot?`แกว่ง ${fmt(x.ratio,1)} เท่าของปกติ`:x.ratio<0.9?"แกว่งน้อยกว่าปกติ":"แกว่งปกติ"}</span></div>
+      <div class="meta"><span>แผน ${fmt(plan,0)}% → ปรับแล้ว <b>${fmt(adj,1)}%</b></span><span>ถืออยู่ ${fmt(cur,1)}%</span></div>
+      <div class="small">แกว่งตอนนี้ ±${fmt(x.now*100,0)}%/ปี · ปกติ ±${fmt(x.norm*100,0)}%/ปี</div></div>`; });
+  h+=`<div class="line full" style="cursor:default"><div class="row"><span>เงินสดสำรอง</span><span></span></div>
+      <div class="meta"><span>แผน ${fmt(+S.plan.cash,0)}% → ปรับแล้ว <b>${fmt(P.cash,1)}%</b></span><span>ถืออยู่ ${fmt(v.cash/tot*100,1)}%</span></div></div>`;
+  h+=`</div><div class="small" style="margin:0 4px;line-height:1.6">หลักการ: ถ้าสินทรัพย์แกว่งแรงกว่าปกติ เช่น 1.6 เท่า ให้ถือเหลือ 1/1.6 ของแผน (35% → 22%) เพื่อให้ความเสี่ยงเท่าช่วงปกติ ส่วนที่ลดพักเป็นเงินสด · ไม่ได้บอกว่าจะขึ้นหรือลง<br>
+    ทดสอบย้อนหลัง 2018+: ขาดทุนหนักสุดของแผน −25% → −19% ผลตอบแทนต่อปี 13.1% → 11.4% · BTC เทียบกับค่าปกติทั้งประวัติ (ซึ่งแกว่งสูงมาก) จึงไม่ค่อยถูกลด<br>
+    เปิดใช้กับการแบ่ง DCA ได้ที่แท็บแผน/DCA</div>`;
+  // ตัวช่วยคำนวณขนาดเทรด
+  const T=(MK&&MK.today&&MK.today.trends)||[], dv=n=>{const t=T.find(x=>x.name===n); return t&&t.vol_4w? t.vol_4w/Math.sqrt(20):null;};
+  const g=dv("Gold"), b=dv("BTC");
+  h+=`<h2>คำนวณขนาดเทรด</h2><div class="card" style="cursor:default">
+    <div class="small">ขนาด = เงินที่ยอมเสีย ÷ ระยะ Stop · ช่วงแกว่งแรงระยะ Stop ที่พ้น "การแกว่งปกติ" จะกว้างขึ้น ขนาดจึงเล็กลงเอง</div>
+    <div class="inrow"><select id="tzA" style="flex:0 0 90px"><option value="Gold">ทอง</option><option value="BTC">BTC</option></select>
+      <input id="tzR" inputmode="decimal" placeholder="ยอมเสีย (บาท)"><input id="tzS" inputmode="decimal" placeholder="Stop (%)"></div>
+    <div class="small" style="margin-top:6px">แกว่งเฉลี่ยต่อวันตอนนี้: ทอง ~${g?fmt(g*100,1):"-"}% · BTC ~${b?fmt(b*100,1):"-"}% (Stop แคบกว่านี้มักโดนกวาดด้วยการแกว่งปกติ)</div>
+    <div id="tzOut" style="margin-top:8px"></div></div>`;
+  return h;
+}
+function calcTrade(){
+  const a=$("tzA"), r=num($("tzR").value), st=num($("tzS").value), o=$("tzOut"); if(!o) return;
+  if(!r||!st){ o.innerHTML=""; return; }
+  const f=fx(), val=r/(st/100);  // มูลค่าสถานะ (บาท)
+  let unit="";
+  if(a.value==="BTC" && P.btcUsd && f) unit=`≈ ${fmt(val/(P.btcUsd*f),4)} BTC`;
+  if(a.value==="Gold" && P.paxgUsd && f){ const oz=val/(P.paxgUsd*f); unit=`≈ ${fmt(oz,2)} oz (${fmt(oz/100,2)} lot XAUUSD)`; }
+  o.innerHTML=`<div class="row"><span>มูลค่าสถานะ</span><b class="money">฿${fmt(val)}</b></div>${unit?`<div class="small">${esc(unit)}</div>`:""}
+    <div class="small">ถ้าโดน Stop ${fmt(st,2)}% เสียราว ฿${fmt(r)} (ไม่รวมสเปรด/ค่าธรรมเนียม/slippage) · ตัวช่วยคำนวณ ไม่ใช่คำแนะนำเทรด</div>`;
+}
+$("pageToday").addEventListener("input",ev=>{ if(["tzR","tzS"].includes(ev.target.id)) calcTrade(); });
+$("pageToday").addEventListener("change",ev=>{ if(ev.target.id==="tzA") calcTrade(); });
 $("pageToday").addEventListener("click",ev=>{ const g=ev.target.closest("[data-goto]"); if(g) showTab(g.dataset.goto); });
+
+/* เป้าหมายแบบ "ปรับตามความผันผวน": สินทรัพย์ที่แกว่งแรงกว่าปกติ ลดน้ำหนักลงตามสัดส่วน (ปกติ ÷ ตอนนี้)
+   ส่วนที่ลดพักเป็นเงินสด และไม่เพิ่มเกินแผนเมื่อแกว่งน้อย — วิธีเดียวกับที่ทดสอบย้อนหลังในห้องทดลองพอร์ต */
+function volScale(){ return (MK&&MK.risk&&MK.risk.vol_scale)||null; }
+function planTargets(adj){
+  const t={}; ["gold","btc","cash"].concat(Object.keys(GROUPS)).forEach(k=>t[k]=+S.plan[k]||0);
+  const vs=volScale(); if(!adj||!vs) return t;
+  let freed=0;
+  const cut=(k,c)=>{ const sc=vs[c]?vs[c].scale:1; const n=t[k]*sc; freed+=t[k]-n; t[k]=n; };
+  cut("gold","gold"); cut("btc","btc"); Object.keys(GROUPS).forEach(g=>cut(g,"stocks"));
+  t.cash+=freed; return t;
+}
 
 /* เสนอการแบ่งเงินตามส่วนที่ยังขาดจากเป้า (คำนวณตามแผนของผู้ใช้เอง ไม่ใช่คำแนะนำลงทุน) */
 function suggest(A){
   const v=catValues(), T=v.total+A, keys=["cash","gold","btc"].concat(Object.keys(GROUPS));
+  const P=planTargets(!!S.plan.volAdj);
   const gap={}; let G=0;
-  keys.forEach(k=>{ const tgt=(+S.plan[k]||0)/100*T; gap[k]=Math.max(0,tgt-v[k]); G+=gap[k]; });
+  keys.forEach(k=>{ const tgt=P[k]/100*T; gap[k]=Math.max(0,tgt-v[k]); G+=gap[k]; });
   if(v.total && v.gold/v.total*100 >= S.plan.goldCap) gap.gold=0;
   G=keys.reduce((t,k)=>t+gap[k],0);
   const out={};
-  keys.forEach(k=>{ out[k] = G>=A ? A*gap[k]/(G||1) : gap[k] + (A-G)*(+S.plan[k]||0)/100; });
+  keys.forEach(k=>{ out[k] = G>=A ? A*gap[k]/(G||1) : gap[k] + (A-G)*P[k]/100; });
   // ทอง/BTC: เข้าตามสัญญาณเท่านั้น ถ้ายังไม่ครบ ให้พักเป็นเงินสด (กระสุนรอ)
   const parked={};
   ["gold","btc"].forEach(k=>{
@@ -690,6 +747,7 @@ function renderPlan(){
   // DCA
   h+=`<h2>เงินลงทุนรอบนี้ (DCA)</h2><div class="card" style="cursor:default">
     <div class="small">ใส่ยอดเงิน แอปจะแบ่งตามส่วนที่ยังขาดจากแผน แล้วคุณตัดสินใจเองก่อนบันทึก</div>
+    ${volScale()?`<label class="small" style="display:flex;gap:8px;align-items:center;margin-top:8px;cursor:pointer"><input type="checkbox" data-act="volAdj" ${S.plan.volAdj?"checked":""}> ใช้เป้าแบบปรับตามความผันผวน (ลดส่วนที่แกว่งแรงกว่าปกติ พักเป็นเงินสด)</label>`:""}
     <div class="inrow"><input id="dcaAmt" inputmode="decimal" placeholder="เช่น 1000" value="${lastSuggest?lastSuggest.A:""}"><button data-act="calc">คำนวณ</button></div>`;
   if(lastSuggest){
     const {alloc,parked}=lastSuggest.r;
@@ -772,6 +830,7 @@ $("pagePlan").addEventListener("click",ev=>{
     lastSuggest={A,r:suggest(A)}; renderPlan(); return; }
   if(a==="record"){ recordSheet(lastSuggest&&lastSuggest.r); return; }
   if(a==="editPlan"){ editPlanSheet(); return; }
+  if(a==="volAdj"){ S.plan.volAdj=t.checked; save(); if(lastSuggest) lastSuggest={A:lastSuggest.A,r:suggest(lastSuggest.A)}; renderPlan(); return; }
   if(a==="gpfSim"){ if(gpfSim){gpfSim=null;renderPlan();} else gpfSimSheet(); return; }
   if(a==="dca"){ const i=S.dca.findIndex(d=>d.id===t.dataset.id); if(i<0) return; const d=S.dca[i];
     openSheet("DCA "+thDate(d.date),[{label:"บันทึกเพิ่มเติม",type:"text",value:d.note||""}],v=>{d.note=v[0];},()=>S.dca.splice(i,1)); }
