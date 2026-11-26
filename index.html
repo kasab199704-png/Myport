@@ -3,7 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0f1115">
+<meta name="theme-color" content="#1b2f57" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#2f6fd6" media="(prefers-color-scheme: light)">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -19,7 +20,14 @@
   --bg:#0f1115;--card:#181b22;--card2:#1f232c;--line:#2a2f3a;--text:#eef0f4;--muted:#8b93a3;
   --up:#2ecc8f;--down:#ff5c6c;--accent:#f5b84b;
   --c-btc:#f7931a;--c-gold:#e8c55a;--c-stock:#4c8dff;--c-gpf:#9b7bff;--c-hi:#2ecc8f;--c-normal:#5fc4d9;--c-jar:#ff8fa3;
+  --on-accent:#1a1300;--top1:#1b2f57;--shadow:none;color-scheme:dark;
 }
+/* ธีมสว่าง: ตามการตั้งค่าของมือถืออัตโนมัติ */
+@media (prefers-color-scheme: light){:root{
+  --bg:#eef3fb;--card:#fff;--card2:#f1f4f9;--line:#e1e7f0;--text:#1b2433;--muted:#6b7588;
+  --up:#16a06a;--down:#e5484d;--accent:#2f6fd6;--on-accent:#fff;--top1:#2f6fd6;--shadow:0 6px 22px rgba(30,60,120,.08);
+  --c-btc:#f08a0c;--c-gold:#cf9c16;--c-stock:#3d7cf0;--c-gpf:#7b5cf0;--c-hi:#16a06a;--c-normal:#1f9fbd;--c-jar:#e0607a;color-scheme:light;
+}}
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--text);font-family:"IBM Plex Sans Thai",system-ui,sans-serif;font-size:16px}
 body{padding:calc(env(safe-area-inset-top) + 12px) 14px calc(env(safe-area-inset-bottom) + 90px)}
@@ -28,7 +36,7 @@ header{display:flex;align-items:center;justify-content:space-between;margin-bott
 header h1{font-size:18px;margin:0;font-weight:600}
 .hbtns{display:flex;gap:8px}
 .icon-btn{background:var(--card);border:1px solid var(--line);color:var(--text);border-radius:12px;width:40px;height:40px;font-size:18px;display:grid;place-items:center;cursor:pointer}
-.hero{background:linear-gradient(140deg,#1c2130,#141821);border:1px solid var(--line);border-radius:20px;padding:18px}
+.hero{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:18px;box-shadow:var(--shadow)}
 .hero .lbl{color:var(--muted);font-size:13px}
 .hero .total{font-size:34px;font-weight:700;letter-spacing:-.5px;margin:2px 0 4px}
 .hero .sub{font-size:14px}
@@ -41,11 +49,12 @@ header h1{font-size:18px;margin:0;font-weight:600}
 .legend span{display:flex;align-items:center;gap:5px}
 .legend i{width:8px;height:8px;border-radius:2px;display:inline-block}
 h2{font-size:14px;color:var(--muted);font-weight:500;margin:22px 4px 8px}
-.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:10px;cursor:pointer;position:relative}
+.card{background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:18px;padding:14px;margin-bottom:10px;cursor:pointer;position:relative}
 .card:active{background:var(--card2)}
+.card.slim{padding:10px 12px;margin-bottom:6px;border-radius:14px}
 .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .name{display:flex;align-items:center;gap:10px;font-weight:600}
-.badge{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:16px;flex:none}
+.badge{width:34px;height:34px;border-radius:10px;background:color-mix(in srgb,currentColor 16%,transparent);display:grid;place-items:center;font-size:16px;flex:none}
 .val{font-weight:600;text-align:right;white-space:nowrap}
 .small{font-size:12.5px;color:var(--muted)}
 .price{font-variant-numeric:tabular-nums}
@@ -70,23 +79,23 @@ h2{font-size:14px;color:var(--muted);font-weight:500;margin:22px 4px 8px}
 .hint{font-size:12px;color:var(--muted);margin-top:4px}
 .btns{display:flex;gap:8px;margin-top:6px}
 .btn{flex:1;border:0;border-radius:12px;padding:13px;font:inherit;font-weight:600;cursor:pointer;background:var(--card2);color:var(--text)}
-.btn.primary{background:var(--accent);color:#1a1300}
-.btn.danger{background:transparent;color:var(--down);border:1px solid #4a2a30;flex:0 0 auto;padding:13px 16px}
+.btn.primary{background:var(--accent);color:var(--on-accent)}
+.btn.danger{background:transparent;color:var(--down);border:1px solid color-mix(in srgb,var(--down) 40%,transparent);flex:0 0 auto;padding:13px 16px}
 .toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 84px);transform:translateX(-50%);background:#2b3040;padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:20}
 .toast.show{opacity:1}
-.tabs{position:fixed;left:0;right:0;bottom:0;background:rgba(15,17,21,.94);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;justify-content:center;padding:6px 10px calc(env(safe-area-inset-bottom) + 6px);z-index:5}
+.tabs{position:fixed;left:0;right:0;bottom:0;background:color-mix(in srgb,var(--card) 94%,transparent);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-top:1px solid var(--line);display:flex;justify-content:center;padding:6px 10px calc(env(safe-area-inset-bottom) + 6px);z-index:5}
 .tabs button{flex:1;max-width:240px;background:none;border:0;color:var(--muted);font:inherit;font-size:12px;padding:6px;display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer}
 .tabs .ti{font-size:21px;line-height:1.1}
 .tabs button.on{color:var(--accent)}
 .monthbar{display:flex;align-items:center;justify-content:space-between;margin:0 0 10px}
 .monthbar b{font-size:17px;font-weight:600}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
-.stat{background:rgba(255,255,255,.04);border-radius:12px;padding:8px 10px}
+.stat{background:var(--card2);border-radius:12px;padding:8px 10px}
 .stat span{font-size:11.5px;color:var(--muted)}
 .stat b{display:block;font-size:15px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.note{margin-top:12px;font-size:13px;padding:8px 10px;border-radius:10px;background:rgba(245,184,75,.1);color:var(--accent)}
+.note{margin-top:12px;font-size:13px;padding:8px 10px;border-radius:10px;background:color-mix(in srgb,var(--accent) 12%,transparent);color:var(--accent)}
 .note.ok{background:rgba(46,204,143,.1);color:var(--up)}.note.bad{background:rgba(255,92,108,.12);color:var(--down)}
-.list{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:0 12px;margin-bottom:8px}
+.list{background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow);border-radius:18px;padding:0 12px;margin-bottom:8px}
 .line{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line);cursor:pointer}
 .line:last-child{border-bottom:0}
 .line .l{display:flex;align-items:center;gap:10px;min-width:0}
@@ -97,7 +106,7 @@ h2{font-size:14px;color:var(--muted);font-weight:500;margin:22px 4px 8px}
 .line.full{display:block}
 .chk{width:28px;height:28px;border-radius:8px;border:2px solid var(--line);display:grid;place-items:center;flex:none;font-size:15px;font-weight:700;color:transparent}
 .chk.on{background:var(--up);border-color:var(--up);color:#06281a}
-.fab{width:100%;background:var(--accent);color:#1a1300;border:0;border-radius:14px;padding:14px;font:inherit;font-weight:700;font-size:16px;cursor:pointer;margin:4px 0 2px}
+.fab{width:100%;background:var(--accent);color:var(--on-accent);border:0;border-radius:14px;padding:14px;font:inherit;font-weight:700;font-size:16px;cursor:pointer;margin:4px 0 2px}
 .addline{background:none;border:0;color:var(--muted);font:inherit;font-size:14px;padding:12px 0;width:100%;text-align:left;cursor:pointer}
 .progress div.over{background:var(--down)}
 .sec{display:flex;justify-content:space-between;align-items:baseline}
@@ -112,7 +121,25 @@ h2{font-size:14px;color:var(--muted);font-weight:500;margin:22px 4px 8px}
 .inrow{display:flex;gap:8px;margin-top:10px}
 .inrow input{flex:1;background:var(--bg);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:11px 12px;font:inherit;font-size:16px;min-width:0}
 .inrow select{background:var(--bg);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:0 8px;font:inherit;font-size:16px}
-.inrow button{flex:none;border:0;border-radius:10px;padding:0 16px;font:inherit;font-weight:600;background:var(--accent);color:#1a1300;cursor:pointer}
+.inrow button{flex:none;border:0;border-radius:10px;padding:0 16px;font:inherit;font-weight:600;background:var(--accent);color:var(--on-accent);cursor:pointer}
+body[data-tab=today],body[data-tab=port],body[data-tab=plan]{background:linear-gradient(180deg,var(--top1) 0,var(--top1) calc(env(safe-area-inset-top) + 120px),var(--bg) calc(env(safe-area-inset-top) + 330px)) no-repeat,var(--bg)}
+body[data-tab=today] header h1,body[data-tab=port] header h1,body[data-tab=plan] header h1{color:#fff}
+body[data-tab=today] .icon-btn,body[data-tab=port] .icon-btn,body[data-tab=plan] .icon-btn{background:rgba(255,255,255,.16);border-color:transparent;color:#fff}
+/* หน้าวันนี้แบบสรุป */
+.spark{display:block;width:100%;height:auto;margin-top:6px}
+.chip{display:inline-block;padding:3px 10px;border-radius:999px;font-size:12.5px;font-weight:600;background:var(--card2)}
+.chip.up{background:color-mix(in srgb,var(--up) 14%,transparent)}.chip.down{background:color-mix(in srgb,var(--down) 14%,transparent)}
+.acts{display:flex;justify-content:space-between;margin:16px 2px 4px}
+.act{flex:1;text-align:center;font-size:12px;background:none;border:0;color:var(--text);font-family:inherit;cursor:pointer;padding:0}
+.act i{display:grid;place-items:center;width:52px;height:52px;margin:0 auto 6px;border-radius:50%;background:var(--accent);color:var(--on-accent);font-style:normal;font-size:21px}
+.act.o i{background:var(--card);border:1px solid var(--line);color:var(--text);box-shadow:var(--shadow)}
+.shead{display:flex;justify-content:space-between;align-items:baseline;margin:22px 4px 8px}
+.shead b{font-size:13px;letter-spacing:.3px;color:var(--muted);font-weight:600}.shead a{font-size:13px;color:var(--muted);cursor:pointer}
+.rings{display:flex;justify-content:space-between;gap:4px}.ring{flex:1;text-align:center;font-size:12px;color:var(--muted)}.ring b{display:block;font-size:14px;color:var(--text)}
+.ring svg{width:100%;max-width:78px;height:auto}
+.m3{display:grid;grid-template-columns:1fr 1fr 1fr;text-align:center;margin:4px 0 14px}.m3 .k{font-size:11.5px;color:var(--muted)}.m3 .v{font-weight:600;font-size:15px}
+.grab{width:44px;height:5px;border-radius:3px;background:var(--line);margin:-6px auto 12px}
+.go{color:var(--muted);font-weight:400}
 footer{margin-top:22px;font-size:11.5px;color:var(--muted);line-height:1.6;text-align:center}
 </style>
 </head>
@@ -139,7 +166,7 @@ footer{margin-top:22px;font-size:11.5px;color:var(--muted);line-height:1.6;text-
   <h2>ลงทุน · ราคาเรียลไทม์</h2>
   <div class="card" data-edit="btc">
     <div class="row">
-      <div class="name"><div class="badge" style="background:#3a2610;color:var(--c-btc)">₿</div>
+      <div class="name"><div class="badge" style="color:var(--c-btc)">₿</div>
         <div>Bitcoin<div class="small price" id="btcPrice">–</div></div></div>
       <div class="val"><div class="money price" id="btcVal">–</div><div class="small money" id="btcPL"></div></div>
     </div>
@@ -148,7 +175,7 @@ footer{margin-top:22px;font-size:11.5px;color:var(--muted);line-height:1.6;text-
 
   <div class="card" data-edit="gold">
     <div class="row">
-      <div class="name"><div class="badge" style="background:#3a3110;color:var(--c-gold)">Au</div>
+      <div class="name"><div class="badge" style="color:var(--c-gold)">Au</div>
         <div>ทองคำ<div class="small price" id="goldPrice">–</div></div></div>
       <div class="val"><div class="money price" id="goldVal">–</div><div class="small money" id="goldPL"></div></div>
     </div>
@@ -162,7 +189,7 @@ footer{margin-top:22px;font-size:11.5px;color:var(--muted);line-height:1.6;text-
   <h2>เงินออมระยะยาว</h2>
   <div class="card" data-edit="gpf">
     <div class="row">
-      <div class="name"><div class="badge" style="background:#2a2140;color:var(--c-gpf)">กบข</div><div>กบข.<div class="small" id="gpfDate"></div></div></div>
+      <div class="name"><div class="badge" style="color:var(--c-gpf)">กบข</div><div>กบข.<div class="small" id="gpfDate"></div></div></div>
       <div class="val money price" id="gpfVal">–</div>
     </div>
     <div class="meta"><span id="gpfAlloc"></span></div>
@@ -171,13 +198,13 @@ footer{margin-top:22px;font-size:11.5px;color:var(--muted);line-height:1.6;text-
   <h2>เงินสำรอง</h2>
   <div class="card" data-edit="hi">
     <div class="row">
-      <div class="name"><div class="badge" style="background:#123326;color:var(--c-hi)">%</div><div>บัญชีดอกเบี้ยสูง<div class="small" id="hiRate"></div></div></div>
+      <div class="name"><div class="badge" style="color:var(--c-hi)">%</div><div>บัญชีดอกเบี้ยสูง<div class="small" id="hiRate"></div></div></div>
       <div class="val"><div class="money price" id="hiVal">–</div><div class="small money" id="hiInt"></div></div>
     </div>
   </div>
   <div class="card" data-edit="normal">
     <div class="row">
-      <div class="name"><div class="badge" style="background:#11303a;color:var(--c-normal)">฿</div><div>บัญชีออมทรัพย์ปกติ<div class="small" id="normalDate"></div></div></div>
+      <div class="name"><div class="badge" style="color:var(--c-normal)">฿</div><div>บัญชีออมทรัพย์ปกติ<div class="small" id="normalDate"></div></div></div>
       <div class="val money price" id="normalVal">–</div>
     </div>
   </div>
@@ -235,7 +262,7 @@ const DEFAULT = {
 const PLAN_DEFAULT = {gold:35, cash:10, btc:10, hospital:14, food:12, bank:10, reit:9, goldCap:50, band:5};
 const GROUPS = {hospital:"รพ./ยา", food:"อาหาร/อุปโภค", bank:"ธนาคาร", reit:"REIT/กองทุน"};
 const MKEY = "myPortfolio.market";
-const APP_VERSION = "2026.11.26-2";
+const APP_VERSION = "2026.11.27-1";
 /* ประเภทสินทรัพย์สำหรับมุมมองรวม (พอร์ตหลัก + กบข.) */
 const GPF_CLS = {thstock:"หุ้นไทย", fstock:"หุ้นต่างประเทศ", bond:"ตราสารหนี้", gold:"ทองคำ", prop:"อสังหาฯ/REIT ไทย", cash:"เงินฝาก/เงินสด"};
 const ALL_CLS = Object.assign({}, GPF_CLS, {btc:"Bitcoin"});
@@ -342,12 +369,12 @@ function render(){
     const sp=stockPx(s), info=mkStock(s.sym);
     const v=s.shares*sp.price, c=s.shares*s.cost; stockVal+=v; stockCost+=c;
     const d=v-c, p=c?d/c*100:0;
-    const div=document.createElement("div"); div.className="card"; div.dataset.edit="stock"; div.dataset.i=i;
-    div.innerHTML=`<div class="row"><div class="name"><div class="badge" style="background:#152440;color:var(--c-stock);font-size:11px">${esc(s.sym.slice(0,5))}</div>
-      <div>${esc(s.sym)}${info&&info.cat?`<span class="tag ${info.passed?"ok":"bad"}">${info.passed?"✅":"⚠️"} ${esc(info.cat)}</span>`:""}<div class="small">${fmt(s.shares)} หุ้น · ราคา ฿${fmt(sp.price,2)}${cdcTxt(info)?` · <span style="white-space:nowrap">CDC ${cdcTxt(info)}</span>`:""}</div></div></div>
-      <div class="val"><div class="money price">฿${fmt(v)}</div>${c?`<div class="small money ${cls(d)}">${sign(d)}${fmt(d)} (${sign(p)}${fmt(p,1)}%)</div>`:""}</div></div>
-      <div class="meta"><span>ต้นทุนเฉลี่ย ฿${fmt(s.cost,2)}</span><span>${sp.auto?"ราคาอัตโนมัติ "+esc(thDate(sp.date)):"ราคาอัปเดต "+esc(s.updated||"-")}</span></div>
-      ${info&&!info.passed&&info.flag?`<div class="small" style="margin-top:6px">⚠️ ${esc(info.flag)}</div>`:""}`;
+    const div=document.createElement("div"); div.className="card slim"; div.dataset.edit="stock"; div.dataset.i=i;
+    // แถวกระชับ: ต้นทุน/วันที่ราคา/เหตุผลที่ติดธง ดูได้เมื่อแตะ (หน้าแก้ไข)
+    div.innerHTML=`<div class="row"><div class="name" style="min-width:0"><div class="badge" style="color:var(--c-stock);font-size:9.5px;letter-spacing:-.3px">${esc(s.sym.slice(0,5))}</div>
+      <div style="min-width:0">${esc(s.sym)}${info&&info.cat?` <span class="tag ${info.passed?"ok":"bad"}" title="${esc(info.flag||"")}">${info.passed?"✅":"⚠️"} ${esc(info.cat)}</span>`:""}
+      <div class="small" style="font-weight:400">${fmt(s.shares)} หุ้น · ฿${fmt(sp.price,2)}${cdcTxt(info)?" · "+cdcTxt(info):""}</div></div></div>
+      <div class="val"><div class="money price">฿${fmt(v)}</div>${c?`<div class="small money ${cls(d)}">${sign(p)}${fmt(p,1)}%</div>`:""}</div></div>`;
     sh.appendChild(div);
   });
   // Savings
@@ -369,7 +396,7 @@ function render(){
     jarTotal+= +j.balance;
     const p = j.goal? Math.min(100,j.balance/j.goal*100):0;
     const div=document.createElement("div"); div.className="card"; div.dataset.edit="jar"; div.dataset.i=i;
-    div.innerHTML=`<div class="row"><div class="name"><div class="badge" style="background:#3a1a22;color:var(--c-jar)">🫙</div><div>${esc(j.name)}</div></div>
+    div.innerHTML=`<div class="row"><div class="name"><div class="badge" style="color:var(--c-jar)">🫙</div><div>${esc(j.name)}</div></div>
       <div class="val money price">฿${fmt(j.balance)}</div></div>
       ${j.goal?`<div class="progress"><div style="width:${p}%"></div></div><div class="meta"><span>เป้า ฿${fmt(j.goal)}</span><span>${fmt(p)}% · ขาดอีก ฿${fmt(Math.max(0,j.goal-j.balance))}</span></div>`:""}`;
     jh.appendChild(div);
@@ -390,6 +417,7 @@ function render(){
   $("alloc").innerHTML = total? parts.filter(p=>p[1]>0).map(p=>`<div style="width:${p[1]/total*100}%;background:var(${p[2]})"></div>`).join(""):"";
   $("legend").innerHTML = total? parts.filter(p=>p[1]>0).map(p=>`<span><i style="background:var(${p[2]})"></i>${p[0]} ${fmt(p[1]/total*100,1)}%</span>`).join(""):"";
   setStatus(Date.now()-P.last<15000);
+  recordHist(catValues());
 }
 function esc(s){return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));}
 
@@ -446,7 +474,7 @@ document.addEventListener("click",e=>{
   if(k==="jar"){const j=S.jars[i]; openSheet("โหล: "+j.name,jarFields(j),v=>{j.name=v[0]||j.name;j.balance=v[1];j.goal=v[2];},()=>S.jars.splice(i,1));}
 });
 function stockFields(s){return[
-  {label:"ชื่อย่อหุ้น",type:"text",value:s.sym,ph:"เช่น KBANK"},
+  {label:"ชื่อย่อหุ้น",type:"text",value:s.sym,ph:"เช่น KBANK",hint:(m=>m&&!m.passed&&m.flag?"⚠️ ผลคัดหุ้น: "+m.flag:"")(mkStock(s.sym))},
   {label:"จำนวนหุ้น",value:s.shares},
   {label:"ต้นทุนเฉลี่ยต่อหุ้น (บาท)",value:s.cost},
   {label:"ราคาตลาดปัจจุบัน (บาท)",value:s.price,hint:"ถ้าหุ้นนี้อยู่ในข้อมูลจากบอท ราคาจะอัปเดตเองทุกเช้า ช่องนี้ใช้สำรองเมื่อไม่มีข้อมูล"},
@@ -532,78 +560,163 @@ function riskOf(w){
           rc:Object.fromEntries(RC_CATS.map((c,i)=>[c,vp?ws[i]*m[i]/vp:0]))};
 }
 function stackBar(obj){ return `<div class="alloc" style="margin:6px 0 2px">${RC_CATS.filter(c=>obj[c]>0.003).map(c=>`<div style="width:${obj[c]*100}%;background:var(${RC_COLOR[c]})"></div>`).join("")}</div>`; }
+/* ประวัติมูลค่าพอร์ตรายวัน (เก็บในเครื่องนี้เท่านั้น) ใช้วาดกราฟเส้น */
+let histSaved=0;
+function recordHist(v){
+  if(!v.ready||!(v.total>0)) return;
+  S.hist=S.hist||{}; const d=isoToday(), val=Math.round(v.total);
+  if(S.hist[d]===val) return; S.hist[d]=val;
+  const ks=Object.keys(S.hist).sort(); if(ks.length>400) ks.slice(0,ks.length-400).forEach(k=>delete S.hist[k]);
+  if(Date.now()-histSaved>60000){ histSaved=Date.now(); save(); }
+}
+function sparkSVG(pts){
+  const w=340,h=110, vs=pts.map(p=>p[1]), mn=Math.min(...vs), mx=Math.max(...vs), rg=(mx-mn)||1;
+  const X=i=>i/(pts.length-1)*w, Y=x=>h-8-(x-mn)/rg*(h-16), up=vs.at(-1)>=vs[0], c=up?"var(--up)":"var(--down)";
+  const d=pts.map((p,i)=>(i?"L":"M")+X(i).toFixed(1)+" "+Y(p[1]).toFixed(1)).join(" ");
+  return `<svg class="spark money" viewBox="-8 0 ${w+16} ${h+22}"><path d="${d}" fill="none" stroke="${c}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${X(pts.length-1)}" cy="${Y(vs.at(-1))}" r="6" fill="var(--card)" stroke="${c}" stroke-width="3"/>
+    <text x="0" y="${h+18}" font-size="12" fill="var(--muted)">${esc(thDate(pts[0][0]))}</text><text x="${w}" y="${h+18}" font-size="12" fill="var(--muted)" text-anchor="end">วันนี้</text></svg>`;
+}
+function ringSVG(cur,tgt,color,icon){
+  const r=31,C=2*Math.PI*r,f=tgt?Math.min(cur/tgt,1):1, over=tgt&&cur>tgt?Math.min((cur-tgt)/tgt,1):0;
+  return `<svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="${r}" fill="none" stroke="var(--line)" stroke-width="7"/>
+    <circle cx="40" cy="40" r="${r}" fill="none" stroke="var(${color})" stroke-width="7" stroke-linecap="round" stroke-dasharray="${(C*f).toFixed(1)} ${C}" transform="rotate(-90 40 40)"/>
+    ${over?`<circle cx="40" cy="40" r="${r-10}" fill="none" stroke="var(${color})" stroke-width="3.5" stroke-linecap="round" opacity=".55" stroke-dasharray="${(2*Math.PI*(r-10)*over).toFixed(1)} 999" transform="rotate(-90 40 40)"/>`:""}
+    <text x="40" y="47" text-anchor="middle" font-size="19">${icon}</text></svg>`;
+}
+const PLAN_CATS=[["gold","ทอง","--c-gold","🥇"],["stocks","หุ้น","--c-stock","🏥"],["btc","BTC","--c-btc","₿"],["cash","เงินสด","--c-hi","💵"]];
+function planNow(v){ const tot=v.total||1; return {gold:[v.gold/tot*100,+S.plan.gold],stocks:[v.stocks/tot*100,stocksTarget()],btc:[v.btc/tot*100,+S.plan.btc],cash:[v.cash/tot*100,+S.plan.cash]}; }
+function gapTxt(cur,tgt){ const d=cur-tgt; return Math.abs(d)<=S.plan.band?"ใกล้แผน":(d>0?"เกิน ":"ขาด ")+fmt(Math.abs(d),0); }
+
 function renderToday(){
-  const el=$("pageToday"), T=MK&&MK.today; let h="";
-  const keep={}; ["tzA","tzR","tzS"].forEach(id=>{ const e=$(id); if(e) keep[id]=e.value; });  // ไม่ล้างช่องที่กำลังกรอก
-  // 1) ตลาดวันนี้
-  if(T){
-    const st=T.stress;
-    h+=`<section class="hero"><div class="lbl">ตลาดวันนี้ · ข้อมูล ${esc(thDate(MK.updated))}</div>
-      <div class="total" style="font-size:28px">${esc(st.label)} <span class="small">${st.score}/${st.of} สัญญาณ</span></div>
-      <div class="sub">${esc(STRESS_TXT[st.level]||"")}</div>
-      ${st.on.length?`<div class="small" style="margin-top:6px;line-height:1.6">${st.on.map(x=>"• "+esc(x)).join("<br>")}</div>`:""}</section>`;
-    h+=`<h2>แนวโน้มหลัก</h2><div class="list">`;
-    T.trends.forEach(t=>{
-      const c=t.chg_1d, vol=t.vol_4w?`กรอบแกว่ง 4 สัปดาห์ ±${fmt(t.vol_4w*100,1)}%`:"";
-      h+=`<div class="line full" style="cursor:default"><div class="row"><span>${esc(TN[t.name]||t.name)}${TN_HINT[t.name]?` <span class="small">(${esc(TN_HINT[t.name])})</span>`:""}</span>
-        <span style="white-space:nowrap">W${t.w_emoji||"⚪"} D${t.d_emoji||"⚪"}</span></div>
-        <div class="meta"><span><b>${esc(t.label)}</b>${t.vol?` · <span class="tag ${t.vol==="แกว่งแรง"?"bad":""}">${esc(t.vol)}</span>`:""}</span>
-        <span class="${c>0?"up":c<0?"down":""}">${c==null?"":(c>0?"+":"")+fmt(c,2)+"% วันนี้"}</span></div>
-        ${vol?`<div class="small">${esc(vol)}</div>`:""}</div>`;
-    });
-    h+=`</div><div class="small" style="margin:0 4px;line-height:1.6">W = ภาพใหญ่ (รายสัปดาห์ สัปดาห์นี้ยังไม่ปิด) · D = ระยะสั้น (รายวัน)<br>
-      "พักตัว" = ภาพใหญ่ยังขึ้นแต่ระยะสั้นย่อลง · "ฟื้นสั้น" = ภาพใหญ่ยังลงแต่ระยะสั้นเด้ง${T.changed&&T.changed.length?`<br>⚡ เปลี่ยนสีวันนี้: ${esc(T.changed.join(", "))}`:""}</div>`;
-  } else h+=`<section class="hero"><div class="lbl">ตลาดวันนี้</div><div class="sub">ยังไม่มีข้อมูลสรุปจากบอท (มาพร้อมรายงานเช้าถัดไป)</div></section>`;
-
-  // 2) กติกาของคุณ
-  h+=`<h2>กติกาของคุณ (มวลชน → CDC)</h2><div class="list">`;
+  const el=$("pageToday"), T=MK&&MK.today, v=catValues(); let h="";
+  // 1) ยอดพอร์ต + กราฟ
+  const pts=Object.entries(S.hist||{}).sort((a,b)=>a[0]<b[0]?-1:1).slice(-90);
+  const first=pts.length?pts[0][1]:0, d=v.total-first;
+  h+=`<section class="hero" style="text-align:center"><div class="lbl">พอร์ตที่บริหารเอง (ไม่รวม กบข./เงินในโหล)</div>
+    <div class="total money price">${v.ready?"฿"+fmt(v.total):"รอราคา…"}</div>
+    ${v.ready&&pts.length>1?`<span class="chip money ${d>=0?"up":"down"}">${d>=0?"+":"−"}฿${fmt(Math.abs(d))} ตั้งแต่ ${esc(thDate(pts[0][0]))}</span>${sparkSVG(pts)}`
+      :`<div class="small" style="margin-top:6px">กราฟมูลค่าจะเริ่มแสดงเมื่อมีข้อมูล 2 วันขึ้นไป (แอปจดให้ทุกวันที่เปิด)</div>`}</section>`;
+  // 2) ปุ่มลัด
+  h+=`<div class="acts"><button class="act" data-do="dca"><i>＋</i>บันทึก DCA</button><button class="act" data-do="port"><i>✎</i>อัปเดตยอด</button>
+    <button class="act o" data-do="plan"><i>🎯</i>เทียบแผน</button><button class="act o" data-do="trade"><i>🧮</i>คำนวณเทรด</button></div>`;
+  // 3) ตลาดวันนี้ (สรุป)
+  h+=`<div class="shead"><b>ตลาดวันนี้</b>${T?`<a data-do="market">ดูทั้งหมด ›</a>`:""}</div>`;
+  if(T){ const st=T.stress;
+    h+=`<div class="card" data-do="market"><div class="row"><span style="font-size:20px;font-weight:700">${esc(st.label)}</span><span class="small">${st.score}/${st.of} สัญญาณ</span></div>
+      <div class="small" style="line-height:1.6;margin-top:2px">${st.on.length?esc(st.on.map(x=>x.replace(/\s*\(.*\)$/,"")).join(" · ")):esc(STRESS_TXT[st.level]||"")}</div>
+      <div style="border-top:1px solid var(--line);margin-top:10px;padding-top:4px">`+
+      T.trends.filter(t=>["Gold","BTC","S&P500"].includes(t.name)).map(t=>`<div class="row" style="padding:6px 0"><span>${esc(TN[t.name]||t.name)}</span><span style="white-space:nowrap">W${t.w_emoji||"⚪"} D${t.d_emoji||"⚪"} <b>${esc(t.label)}</b></span></div>`).join("")+`</div></div>`;
+  } else h+=`<div class="card" style="cursor:default"><div class="small">ยังไม่มีข้อมูลสรุปจากบอท (มาพร้อมรายงานเช้าถัดไป)</div></div>`;
+  // 4) เทียบแผน (วงแหวน)
+  h+=`<div class="shead"><b>เทียบแผน</b><a data-do="plan">รายละเอียด ›</a></div>`;
+  if(v.ready&&v.total>0){ const pn=planNow(v);
+    h+=`<div class="card" data-do="plan"><div class="rings">`+PLAN_CATS.map(([k,l,c,ic])=>`<div class="ring">${ringSVG(pn[k][0],pn[k][1],c,ic)}<b>${gapTxt(...pn[k])}</b>${gapTxt(...pn[k])==="ใกล้แผน"?"":"จุด · "}${l}</div>`).join("")+
+      `</div><div class="small" style="text-align:center;margin-top:8px">วงเต็ม = ถึงเป้า · วงในซ้อน = เกินเป้า</div></div>`;
+  } else h+=`<div class="card" style="cursor:default"><div class="small">${v.ready?"กรอกยอดในแท็บพอร์ตก่อน":"รอราคา BTC/ทองสักครู่…"}</div></div>`;
+  // 5) กติกาของคุณ
+  h+=`<div class="shead"><b>กติกาของคุณ</b><a>มวลชน → CDC</a></div><div class="card" style="cursor:default">`;
   ["Gold","BTC"].forEach(a=>{ const s=signalOf(a);
-    h+=`<div class="line full" style="cursor:default"><div class="row"><span>${a==="Gold"?"ทองคำ":"Bitcoin"}</span>
-      <span>${s?(s.rule_met?'<span class="tag ok">🎯 ครบเงื่อนไข</span>':'<span class="tag">ยังไม่ครบ</span>'):'<span class="small">ไม่มีข้อมูล</span>'}</span></div>
-      ${s?`<div class="small">มวลชน: ${esc(s.crowd_label||"-")}${s.fng?` (F&G ${s.fng})`:""} ${s.crowd_fear?"✓":"✗"} · CDC รายวัน ${esc(s.cdc_emoji||"")} ${esc(s.cdc_th||"")}</div>`:""}</div>`; });
+    h+=`<div class="row" style="padding:5px 0"><span>${a==="Gold"?"ทองคำ":"Bitcoin"}</span>${s?(s.rule_met?'<span class="tag ok">🎯 ครบเงื่อนไข</span>':`<span class="chip">มวลชน${s.crowd_fear?"กลัว ✓":"ยังไม่กลัว"} · CDC ${esc(s.cdc_emoji||"")}</span>`):'<span class="small">ไม่มีข้อมูล</span>'}</div>`; });
   h+=`</div>`;
-
-  // 3) พอร์ตของคุณ (คำนวณในเครื่อง ไม่ส่งออก)
-  const v=catValues();
+  // 6) เครื่องมือความเสี่ยง (แตะเพื่อดูรายละเอียด)
   if(MK&&MK.risk&&v.ready&&v.total>0){
-    const now=riskOf({gold:v.gold,stocks:v.stocks,btc:v.btc,cash:v.cash});
-    const plan=riskOf({gold:+S.plan.gold,stocks:stocksTarget(),btc:+S.plan.btc,cash:+S.plan.cash});
-    const top=RC_CATS.reduce((a,c)=>now.rc[c]>now.rc[a]?c:a,"gold");
-    h+=`<h2>ความเสี่ยงของพอร์ตคุณ</h2><div class="card" style="cursor:default">
-      <div class="small">สัดส่วนเงิน</div>${stackBar(now.w)}
-      <div class="small" style="margin-top:8px">สัดส่วนความเสี่ยง (ใครทำให้พอร์ตแกว่ง)</div>${stackBar(now.rc)}
-      <div class="legend" style="margin-top:8px">${RC_CATS.map(c=>`<span><i style="background:var(${RC_COLOR[c]})"></i>${RC_NAME[c]} ${fmt(now.w[c]*100,0)}% → ${fmt(now.rc[c]*100,0)}%</span>`).join("")}</div>
-      <div class="note" style="line-height:1.6">${esc(RC_NAME[top])}ถือ ${fmt(now.w[top]*100,0)}% ของเงิน แต่ทำให้พอร์ตแกว่ง ${fmt(now.rc[top]*100,0)}%<br>
-        ปีปกติพอร์ตแกว่งราว ±${fmt(now.vol*100,1)}% <span class="money">(±฿${fmt(now.vol*v.total)})</span> · ถ้าเป็นตามแผน ±${fmt(plan.vol*100,1)}%</div></div>`;
-    // stress test
-    const sc=Object.values(MK.risk.scenarios||{});
-    if(sc.length){
-      h+=`<h2>ถ้าเกิดเหตุการณ์แบบในอดีตอีก</h2><div class="list">`;
-      sc.forEach(x=>{ const r=x.ret, miss=r.btc==null;
-        const loss=w=>RC_CATS.reduce((t,c)=>t+(w[c]||0)*(r[c]||0),0);
-        const a=loss(now.w), b=loss(plan.w);
-        h+=`<div class="line full" style="cursor:default"><div class="row"><span>${esc(x.label)}</span>
-          <b class="${a<0?"down":"up"}">${a>0?"+":""}${fmt(a*100,1)}%</b></div>
-          <div class="meta"><span class="money">≈ ${a<0?"−":"+"}฿${fmt(Math.abs(a*v.total))}</span><span>ถ้าเป็นตามแผน ${b>0?"+":""}${fmt(b*100,1)}%</span></div>
-          ${miss?`<div class="small">ไม่มีข้อมูล BTC ช่วงนั้น (นับ BTC = 0%)</div>`:""}</div>`; });
-      h+=`</div><div class="small" style="margin:0 4px;line-height:1.6">คิดจากสัดส่วนพอร์ตในเครื่องนี้ × ผลตอบแทนจริงช่วงนั้น (ทอง/BTC เป็นเงินบาท, หุ้นปันผลใช้กองทุน 1DIV แทน) เหตุการณ์ใหม่จะไม่เหมือนเดิมทุกครั้ง</div>`;
-    }
-    h+=volSizingSection(v);
-    // ห่างแผน
-    const tot=v.total, gaps=[["gold",v.gold,+S.plan.gold],["stocks",v.stocks,stocksTarget()],["cash",v.cash,+S.plan.cash],["btc",v.btc,+S.plan.btc]]
-      .map(([k,val,t])=>[k,val/tot*100-t]).filter(([k,d])=>Math.abs(d)>S.plan.band).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]));
-    h+=`<h2>เทียบแผน</h2><div class="card" data-goto="plan">${gaps.length?gaps.map(([k,d])=>`<div class="row" style="padding:3px 0"><span>${esc(RC_NAME[k])}</span><span>${d>0?"เกินแผน":"ขาดจากแผน"} ${fmt(Math.abs(d),1)} จุด</span></div>`).join(""):'<div class="small">ทุกส่วนอยู่ในกรอบแผน</div>'}
-      <div class="small" style="margin-top:6px;color:var(--accent)">ไปแท็บแผน/DCA ›</div></div>`;
-  } else if(MK&&MK.risk) h+=`<h2>ความเสี่ยงของพอร์ตคุณ</h2><div class="small" style="margin:0 4px">${v.ready?"กรอกยอดในแท็บพอร์ตก่อน":"รอราคา BTC/ทองสักครู่…"}</div>`;
+    const now=riskOf({gold:v.gold,stocks:v.stocks,btc:v.btc,cash:v.cash}), top=RC_CATS.reduce((a,c)=>now.rc[c]>now.rc[a]?c:a,"gold");
+    const sc=Object.values(MK.risk.scenarios||{}), worst=sc.map(x=>[x.label,RC_CATS.reduce((t,c)=>t+(now.w[c]||0)*(x.ret[c]||0),0)]).sort((a,b)=>a[1]-b[1])[0];
+    const vs=volScale(), hot=vs?Object.entries(vs).filter(([c,x])=>x.ratio>1.1):[];
+    const line=(act,t,r)=>`<div class="line" data-do="${act}"><span>${t}</span><span class="small" style="text-align:right">${r} <span class="go">›</span></span></div>`;
+    h+=`<div class="shead"><b>ความเสี่ยงและขนาด</b></div><div class="list">`+
+      line("risk","ใครทำให้พอร์ตแกว่ง",`${esc(RC_NAME[top])} ${fmt(now.rc[top]*100,0)}%`)+
+      (worst?line("stress","ถ้าเกิดเหตุการณ์แบบในอดีต",`แย่สุด ${fmt(worst[1]*100,1)}%`):"")+
+      (vs?line("vol","ปรับขนาดตามความผันผวน",hot.length?hot.map(([c,x])=>`${esc(RC_NAME[c])} ×${fmt(x.ratio,1)}`).join(", "):"แกว่งปกติ"):"")+
+      line("trade","คำนวณขนาดเทรด","ทอง / BTC")+`</div>`;
+  }
   h+=`<footer>สรุปตลาดมาจากบอททุกเช้า · ตัวเลขพอร์ตคำนวณในเครื่องนี้เท่านั้น<br>เป็นสถานะและข้อมูลประกอบ ไม่ใช่คำแนะนำซื้อขาย การตัดสินใจเป็นของคุณ</footer>`;
   el.innerHTML=h;
-  Object.entries(keep).forEach(([id,v])=>{ const e=$(id); if(e) e.value=v; }); if(keep.tzR) calcTrade();
 }
+
+/* แผ่นรายละเอียด (เลื่อนขึ้นจากด้านล่าง) */
+function openPanel(title,html){
+  sheet.innerHTML=`<div class="grab"></div><h3>${esc(title)}</h3>${html}<button class="btn" id="pClose" style="width:100%;margin-top:16px">ปิด</button>`;
+  bg.classList.add("open"); sheet.scrollTop=0; $("pClose").onclick=closeSheet;
+}
+function marketDetail(){
+  const T=MK.today, st=T.stress; let h=`<div class="small">ข้อมูล ${esc(thDate(MK.updated))}</div>
+    <div class="card" style="cursor:default;margin-top:8px"><div style="font-size:22px;font-weight:700">${esc(st.label)} <span class="small">${st.score}/${st.of} สัญญาณ</span></div>
+    <div class="small" style="margin-top:2px">${esc(STRESS_TXT[st.level]||"")}</div>${st.on.length?`<div class="small" style="margin-top:6px;line-height:1.6">${st.on.map(x=>"• "+esc(x)).join("<br>")}</div>`:""}</div><div class="list">`;
+  T.trends.forEach(t=>{ const c=t.chg_1d;
+    h+=`<div class="line full" style="cursor:default"><div class="row"><span>${esc(TN[t.name]||t.name)}${TN_HINT[t.name]?` <span class="small">(${esc(TN_HINT[t.name])})</span>`:""}</span><span style="white-space:nowrap">W${t.w_emoji||"⚪"} D${t.d_emoji||"⚪"}</span></div>
+      <div class="meta"><span><b>${esc(t.label)}</b>${t.vol?` <span class="tag ${t.vol==="แกว่งแรง"?"bad":""}">${esc(t.vol)}</span>`:""}</span><span class="${c>0?"up":c<0?"down":""}">${c==null?"":(c>0?"+":"")+fmt(c,2)+"% วันนี้"}</span></div>
+      ${t.vol_4w?`<div class="small">กรอบแกว่ง 4 สัปดาห์ ±${fmt(t.vol_4w*100,1)}%</div>`:""}</div>`; });
+  return h+`</div><div class="small" style="line-height:1.6">W = ภาพใหญ่ (รายสัปดาห์ สัปดาห์นี้ยังไม่ปิด) · D = ระยะสั้น (รายวัน)<br>"พักตัว" = ภาพใหญ่ยังขึ้นแต่ระยะสั้นย่อลง · "ฟื้นสั้น" = ภาพใหญ่ยังลงแต่ระยะสั้นเด้ง${T.changed&&T.changed.length?`<br>⚡ เปลี่ยนสีวันนี้: ${esc(T.changed.join(", "))}`:""}</div>`;
+}
+function riskDetail(v){
+  const now=riskOf({gold:v.gold,stocks:v.stocks,btc:v.btc,cash:v.cash}), plan=riskOf({gold:+S.plan.gold,stocks:stocksTarget(),btc:+S.plan.btc,cash:+S.plan.cash});
+  const top=RC_CATS.reduce((a,c)=>now.rc[c]>now.rc[a]?c:a,"gold");
+  return `<div class="small">สัดส่วนเงิน</div>${stackBar(now.w)}<div class="small" style="margin-top:10px">สัดส่วนความเสี่ยง (ใครทำให้พอร์ตแกว่ง)</div>${stackBar(now.rc)}
+    <div class="legend" style="margin-top:8px">${RC_CATS.map(c=>`<span><i style="background:var(${RC_COLOR[c]})"></i>${RC_NAME[c]} ${fmt(now.w[c]*100,0)}% → ${fmt(now.rc[c]*100,0)}%</span>`).join("")}</div>
+    <div class="note" style="line-height:1.6">${esc(RC_NAME[top])}ถือ ${fmt(now.w[top]*100,0)}% ของเงิน แต่ทำให้พอร์ตแกว่ง ${fmt(now.rc[top]*100,0)}%<br>
+    ปีปกติพอร์ตแกว่งราว ±${fmt(now.vol*100,1)}% <span class="money">(±฿${fmt(now.vol*v.total)})</span> · ถ้าเป็นตามแผน ±${fmt(plan.vol*100,1)}%</div>
+    <div class="small" style="margin-top:8px">คำนวณจากความผันผวนและความสัมพันธ์ 3 ปีรายสัปดาห์ (หุ้นปันผลใช้ 1DIV แทน)</div>`;
+}
+function stressDetail(v){
+  const now=riskOf({gold:v.gold,stocks:v.stocks,btc:v.btc,cash:v.cash}), plan=riskOf({gold:+S.plan.gold,stocks:stocksTarget(),btc:+S.plan.btc,cash:+S.plan.cash});
+  let h=`<div class="list">`;
+  Object.values(MK.risk.scenarios||{}).forEach(x=>{ const r=x.ret, loss=w=>RC_CATS.reduce((t,c)=>t+(w[c]||0)*(r[c]||0),0), a=loss(now.w), b=loss(plan.w);
+    h+=`<div class="line full" style="cursor:default"><div class="row"><span>${esc(x.label)}</span><b class="${a<0?"down":"up"}">${a>0?"+":""}${fmt(a*100,1)}%</b></div>
+      <div class="meta"><span class="money">≈ ${a<0?"−":"+"}฿${fmt(Math.abs(a*v.total))}</span><span>ถ้าเป็นตามแผน ${b>0?"+":""}${fmt(b*100,1)}%</span></div>
+      ${r.btc==null?`<div class="small">ไม่มีข้อมูล BTC ช่วงนั้น (นับ BTC = 0%)</div>`:""}</div>`; });
+  return h+`</div><div class="small" style="line-height:1.6">คิดจากสัดส่วนพอร์ตในเครื่องนี้ × ผลตอบแทนจริงช่วงนั้น (ทอง/BTC เป็นเงินบาท, หุ้นปันผลใช้กองทุน 1DIV แทน) เหตุการณ์ใหม่จะไม่เหมือนเดิมทุกครั้ง</div>`;
+}
+function planDetail(v){
+  // DCA รายเดือน 12 เดือนล่าสุด
+  const months=[], now=new Date();
+  for(let i=11;i>=0;i--){ const d=new Date(now.getFullYear(),now.getMonth()-i,1); months.push(d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")); }
+  const sum=Object.fromEntries(months.map(m=>[m,0])); S.dca.forEach(x=>{ const m=String(x.date||"").slice(0,7); if(m in sum) sum[m]+= +x.amount||0; });
+  const vals=months.map(m=>sum[m]), mx=Math.max(...vals,1), used=vals.filter(x=>x>0), avg=used.length?used.reduce((a,b)=>a+b,0)/used.length:0;
+  const TM=["ม.ค","ก.พ","มี.ค","เม.ย","พ.ค","มิ.ย","ก.ค","ส.ค","ก.ย","ต.ค","พ.ย","ธ.ค"];
+  let h=`<div style="text-align:center"><div class="small">DCA เดือนนี้</div><div class="money" style="font-size:30px;font-weight:700">฿${fmt(vals[11])}</div>
+    <div class="small">${used.length?`เฉลี่ยเดือนที่ลงทุน ฿${fmt(avg)} · ${used.length} เดือน`:"ยังไม่มีประวัติ DCA (บันทึกได้ที่แท็บแผน/DCA)"}</div></div>
+    <svg class="spark money" viewBox="0 0 360 150" style="margin-top:10px">${vals.map((x,i)=>`<rect x="${6+i*29.5}" y="${118-x/mx*100}" width="18" height="${Math.max(x/mx*100,x?2:0)}" rx="5" fill="var(${i===11?"--accent":"--c-stock"})" opacity="${i===11?1:.65}"/>
+      <text x="${15+i*29.5}" y="138" font-size="10" text-anchor="middle" fill="var(--muted)">${TM[+months[i].slice(5)-1]}</text>`).join("")}
+      ${avg?`<line x1="0" x2="360" y1="${118-avg/mx*100}" y2="${118-avg/mx*100}" stroke="var(--text)" stroke-dasharray="4 4" opacity=".45"/>`:""}</svg>
+    <div class="small" style="text-align:center;margin:14px 0 6px">เทียบแผนรายหมวด</div>`;
+  const tot=v.total||1, rows=[["🥇 ทองคำ",v.gold,+S.plan.gold]].concat(Object.keys(GROUPS).map(g=>[GROUPS[g],v[g],+S.plan[g]||0]))
+    .concat([["₿ Bitcoin",v.btc,+S.plan.btc],["💵 เงินสดสำรอง",v.cash,+S.plan.cash]]);
+  if(v.other) rows.push(["หุ้นนอกแผน",v.other,0]);
+  rows.forEach(([l,val,t])=>{ const c=val/tot*100, d=c-t;
+    h+=`<div style="text-align:center;margin-top:6px"><span class="chip">${esc(l)}</span></div>
+      <div class="m3"><div><div class="k">ตอนนี้</div><div class="v">${fmt(c,1)}%</div></div><div><div class="k">เป้า</div><div class="v">${fmt(t,0)}%</div></div>
+      <div><div class="k">ห่างแผน</div><div class="v">${Math.abs(d)<0.5?"ตรงแผน":(d>0?"เกิน ":"ขาด ")+fmt(Math.abs(d),1)}</div></div></div>`; });
+  return h+`<button class="fab" data-do="dca" style="margin-top:6px">ไปแบ่งเงิน DCA</button>`;
+}
+function tradeCalcHTML(){
+  const T=(MK&&MK.today&&MK.today.trends)||[], dv=n=>{const t=T.find(x=>x.name===n); return t&&t.vol_4w? t.vol_4w/Math.sqrt(20):null;};
+  const g=dv("Gold"), b=dv("BTC");
+  return `<div class="small">ขนาด = เงินที่ยอมเสีย ÷ ระยะ Stop · ช่วงแกว่งแรงระยะ Stop ที่พ้น "การแกว่งปกติ" จะกว้างขึ้น ขนาดจึงเล็กลงเอง</div>
+    <div class="inrow"><select id="tzA" style="flex:0 0 90px"><option value="Gold">ทอง</option><option value="BTC">BTC</option></select>
+      <input id="tzR" inputmode="decimal" placeholder="ยอมเสีย (บาท)"><input id="tzS" inputmode="decimal" placeholder="Stop (%)"></div>
+    <div class="small" style="margin-top:6px">แกว่งเฉลี่ยต่อวันตอนนี้: ทอง ~${g?fmt(g*100,1):"-"}% · BTC ~${b?fmt(b*100,1):"-"}% (Stop แคบกว่านี้มักโดนกวาดด้วยการแกว่งปกติ)</div>
+    <div id="tzOut" style="margin-top:10px"></div>`;
+}
+function todayAction(a){
+  const v=catValues();
+  if(a==="port"){ closeSheet(); showTab("port"); return; }
+  if(a==="dca"){ closeSheet(); showTab("plan"); setTimeout(()=>{ const i=$("dcaAmt"); if(i){ i.scrollIntoView({block:"center"}); i.focus(); } },50); return; }
+  if(a==="market"&&MK&&MK.today) return openPanel("ตลาดวันนี้",marketDetail());
+  if(a==="plan") return openPanel("เทียบแผน",planDetail(v));
+  if(a==="trade") return openPanel("คำนวณขนาดเทรด",tradeCalcHTML());
+  if(!(MK&&MK.risk&&v.ready&&v.total>0)) return;
+  if(a==="risk") return openPanel("ใครทำให้พอร์ตแกว่ง",riskDetail(v));
+  if(a==="stress") return openPanel("ถ้าเกิดเหตุการณ์แบบในอดีตอีก",stressDetail(v));
+  if(a==="vol") return openPanel("ปรับขนาดตามความผันผวน",volSizingSection(v));
+}
+document.addEventListener("click",ev=>{ const t=ev.target.closest("[data-do]"); if(t&&(t.closest("#pageToday")||t.closest("#sheet"))) todayAction(t.dataset.do); });
 const VS_CAT={gold:["gold"],stocks:Object.keys(GROUPS),btc:["btc"]};
 function volSizingSection(v){
   const vs=volScale(); if(!vs) return "";
   const P=planTargets(true), tot=v.total||1;
-  let h=`<h2>ปรับขนาดตามความผันผวน</h2><div class="list">`;
+  let h=`<div class="list">`;
   ["gold","stocks","btc"].forEach(c=>{ const x=vs[c]; if(!x) return;
     const plan=VS_CAT[c].reduce((t,k)=>t+(+S.plan[k]||0),0), adj=VS_CAT[c].reduce((t,k)=>t+P[k],0), cur=(c==="stocks"?v.stocks:v[c])/tot*100;
     const hot=x.ratio>1.1;
@@ -616,15 +729,6 @@ function volSizingSection(v){
   h+=`</div><div class="small" style="margin:0 4px;line-height:1.6">หลักการ: ถ้าสินทรัพย์แกว่งแรงกว่าปกติ เช่น 1.6 เท่า ให้ถือเหลือ 1/1.6 ของแผน (35% → 22%) เพื่อให้ความเสี่ยงเท่าช่วงปกติ ส่วนที่ลดพักเป็นเงินสด · ไม่ได้บอกว่าจะขึ้นหรือลง<br>
     ทดสอบย้อนหลัง 2018+: ขาดทุนหนักสุดของแผน −25% → −19% ผลตอบแทนต่อปี 13.1% → 11.4% · BTC เทียบกับค่าปกติทั้งประวัติ (ซึ่งแกว่งสูงมาก) จึงไม่ค่อยถูกลด<br>
     เปิดใช้กับการแบ่ง DCA ได้ที่แท็บแผน/DCA</div>`;
-  // ตัวช่วยคำนวณขนาดเทรด
-  const T=(MK&&MK.today&&MK.today.trends)||[], dv=n=>{const t=T.find(x=>x.name===n); return t&&t.vol_4w? t.vol_4w/Math.sqrt(20):null;};
-  const g=dv("Gold"), b=dv("BTC");
-  h+=`<h2>คำนวณขนาดเทรด</h2><div class="card" style="cursor:default">
-    <div class="small">ขนาด = เงินที่ยอมเสีย ÷ ระยะ Stop · ช่วงแกว่งแรงระยะ Stop ที่พ้น "การแกว่งปกติ" จะกว้างขึ้น ขนาดจึงเล็กลงเอง</div>
-    <div class="inrow"><select id="tzA" style="flex:0 0 90px"><option value="Gold">ทอง</option><option value="BTC">BTC</option></select>
-      <input id="tzR" inputmode="decimal" placeholder="ยอมเสีย (บาท)"><input id="tzS" inputmode="decimal" placeholder="Stop (%)"></div>
-    <div class="small" style="margin-top:6px">แกว่งเฉลี่ยต่อวันตอนนี้: ทอง ~${g?fmt(g*100,1):"-"}% · BTC ~${b?fmt(b*100,1):"-"}% (Stop แคบกว่านี้มักโดนกวาดด้วยการแกว่งปกติ)</div>
-    <div id="tzOut" style="margin-top:8px"></div></div>`;
   return h;
 }
 function calcTrade(){
@@ -637,9 +741,8 @@ function calcTrade(){
   o.innerHTML=`<div class="row"><span>มูลค่าสถานะ</span><b class="money">฿${fmt(val)}</b></div>${unit?`<div class="small">${esc(unit)}</div>`:""}
     <div class="small">ถ้าโดน Stop ${fmt(st,2)}% เสียราว ฿${fmt(r)} (ไม่รวมสเปรด/ค่าธรรมเนียม/slippage) · ตัวช่วยคำนวณ ไม่ใช่คำแนะนำเทรด</div>`;
 }
-$("pageToday").addEventListener("input",ev=>{ if(["tzR","tzS"].includes(ev.target.id)) calcTrade(); });
-$("pageToday").addEventListener("change",ev=>{ if(ev.target.id==="tzA") calcTrade(); });
-$("pageToday").addEventListener("click",ev=>{ const g=ev.target.closest("[data-goto]"); if(g) showTab(g.dataset.goto); });
+document.addEventListener("input",ev=>{ if(["tzR","tzS"].includes(ev.target.id)) calcTrade(); });
+document.addEventListener("change",ev=>{ if(ev.target.id==="tzA") calcTrade(); });
 
 /* เป้าหมายแบบ "ปรับตามความผันผวน": สินทรัพย์ที่แกว่งแรงกว่าปกติ ลดน้ำหนักลงตามสัดส่วน (ปกติ ÷ ตอนนี้)
    ส่วนที่ลดพักเป็นเงินสด และไม่เพิ่มเกินแผนเมื่อแกว่งน้อย — วิธีเดียวกับที่ทดสอบย้อนหลังในห้องทดลองพอร์ต */
@@ -1096,7 +1199,7 @@ $("pageSalary").addEventListener("click",ev=>{
 
 function refresh(){ ensure(); render(); if(S.tab==="salary") renderSalary(); if(S.tab==="plan") renderPlan(); if(S.tab==="today") renderToday(); }
 function showTab(t){
-  S.tab=t; save();
+  S.tab=t; save(); document.body.dataset.tab=t;
   $("pagePort").hidden=t!=="port"; $("pageSalary").hidden=t!=="salary"; $("pagePlan").hidden=t!=="plan"; $("pageToday").hidden=t!=="today";
   document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
   $("pageTitle").textContent=t==="salary"?"เงินเดือน":t==="plan"?"แผน & DCA":t==="today"?"สรุปวันนี้":"พอร์ตของฉัน";
