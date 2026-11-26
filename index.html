@@ -198,10 +198,12 @@ footer{margin-top:22px;font-size:11.5px;color:var(--muted);line-height:1.6;text-
     <span id="appVer"></span>
   </footer>
 </div>
+<div id="pageToday" hidden></div>
 <div id="pageSalary" hidden></div>
 <div id="pagePlan" hidden></div>
 </div>
 <nav class="tabs">
+  <button data-tab="today"><span class="ti">🧭</span>วันนี้</button>
   <button data-tab="port" class="on"><span class="ti">📊</span>พอร์ต</button>
   <button data-tab="plan"><span class="ti">🎯</span>แผน/DCA</button>
   <button data-tab="salary"><span class="ti">💰</span>เงินเดือน</button>
@@ -232,7 +234,7 @@ const DEFAULT = {
 const PLAN_DEFAULT = {gold:35, cash:10, btc:10, hospital:14, food:12, bank:10, reit:9, goldCap:50, band:5};
 const GROUPS = {hospital:"รพ./ยา", food:"อาหาร/อุปโภค", bank:"ธนาคาร", reit:"REIT/กองทุน"};
 const MKEY = "myPortfolio.market";
-const APP_VERSION = "2026.11.21-4";
+const APP_VERSION = "2026.11.26-1";
 /* ประเภทสินทรัพย์สำหรับมุมมองรวม (พอร์ตหลัก + กบข.) */
 const GPF_CLS = {thstock:"หุ้นไทย", fstock:"หุ้นต่างประเทศ", bond:"ตราสารหนี้", gold:"ทองคำ", prop:"อสังหาฯ/REIT ไทย", cash:"เงินฝาก/เงินสด"};
 const ALL_CLS = Object.assign({}, GPF_CLS, {btc:"Bitcoin"});
@@ -298,7 +300,10 @@ function setStatus(live){
 
 /* ---------- render ---------- */
 let rq=false;
-function scheduleRender(){ if(!rq){rq=true;requestAnimationFrame(()=>{rq=false;render();});} }
+let lastToday=0;
+function scheduleRender(){ if(!rq){rq=true;requestAnimationFrame(()=>{rq=false;render();
+  /* หน้า "วันนี้" ใช้ราคาสดคำนวณความเสี่ยง: วาดใหม่ไม่เกินทุก 10 วินาที (ไม่ให้หน้ากระพริบ) */
+  if(S.tab==="today" && Date.now()-lastToday>10000){ lastToday=Date.now(); renderToday(); }});} }
 function setText(id,txt){ const el=$(id); if(el.textContent!==txt) el.textContent=txt; }
 function flash(id,v){ const el=$(id); if(prev[id]!==undefined && v!==prev[id]){el.classList.remove("flash-up","flash-down");void el.offsetWidth;el.classList.add(v>prev[id]?"flash-up":"flash-down");} prev[id]=v; }
 function pl(id,val,cost){
@@ -508,6 +513,89 @@ function stocksTarget(){ return Object.keys(GROUPS).reduce((t,k)=>t+(+S.plan[k]|
 
 /* สถานะสัญญาณตามกติกาผู้ใช้ (มวลชนบอกเหตุ → CDC กลับตัว) จากบอท */
 function signalOf(asset){ return MK&&MK.assets? MK.assets[asset]||null : null; }
+
+/* ---------- หน้า "วันนี้": สรุปตลาด (จากบอท) + ความเสี่ยงพอร์ต (คำนวณในเครื่องนี้) ---------- */
+const TN={Gold:"ทองคำ",BTC:"Bitcoin","S&P500":"หุ้นสหรัฐ (S&P500)",DXY:"ดอลลาร์ (DXY)",US10Y:"ดอกเบี้ย 10 ปีสหรัฐ",Brent:"น้ำมัน Brent",USDTHB:"ดอลลาร์/บาท"};
+const TN_HINT={USDTHB:"ขึ้น = บาทอ่อน",US10Y:"ขึ้น = ดอกเบี้ยสูงขึ้น",DXY:"ขึ้น = ดอลลาร์แข็ง"};
+const STRESS_TXT={green:"ไม่มีสัญญาณตลาดเครียดเด่น",yellow:"มีสัญญาณเครียดบางส่วน ตลาดอาจแกว่งมากกว่าปกติ",red:"หลายสัญญาณเครียดพร้อมกัน ระวังการแกว่งแรง"};
+const RC_CATS=["gold","stocks","btc","cash"], RC_NAME={gold:"ทองคำ",stocks:"หุ้นปันผล",btc:"Bitcoin",cash:"เงินสำรอง"},
+      RC_COLOR={gold:"--c-gold",stocks:"--c-stock",btc:"--c-btc",cash:"--c-hi"};
+/* แต่ละสินทรัพย์ "กิน" ความเสี่ยงของพอร์ตกี่ % (จากความผันผวน + ความสัมพันธ์ 3 ปี ที่บอทส่งมา) */
+function riskOf(w){
+  const R=MK.risk.params, v=RC_CATS.map(c=>+R.vol[c]||0);
+  let ws=RC_CATS.map(c=>+w[c]||0); const s=ws.reduce((a,b)=>a+b,0)||1; ws=ws.map(x=>x/s);
+  const cov=(i,j)=>v[i]*v[j]*(i===j?1:(+R.corr[RC_CATS[i]][RC_CATS[j]]||0));
+  const m=ws.map((_,i)=>ws.reduce((t,wj,j)=>t+cov(i,j)*wj,0));
+  const vp=ws.reduce((t,wi,i)=>t+wi*m[i],0);
+  return {vol:Math.sqrt(vp), w:Object.fromEntries(RC_CATS.map((c,i)=>[c,ws[i]])),
+          rc:Object.fromEntries(RC_CATS.map((c,i)=>[c,vp?ws[i]*m[i]/vp:0]))};
+}
+function stackBar(obj){ return `<div class="alloc" style="margin:6px 0 2px">${RC_CATS.filter(c=>obj[c]>0.003).map(c=>`<div style="width:${obj[c]*100}%;background:var(${RC_COLOR[c]})"></div>`).join("")}</div>`; }
+function renderToday(){
+  const el=$("pageToday"), T=MK&&MK.today; let h="";
+  // 1) ตลาดวันนี้
+  if(T){
+    const st=T.stress;
+    h+=`<section class="hero"><div class="lbl">ตลาดวันนี้ · ข้อมูล ${esc(thDate(MK.updated))}</div>
+      <div class="total" style="font-size:28px">${esc(st.label)} <span class="small">${st.score}/${st.of} สัญญาณ</span></div>
+      <div class="sub">${esc(STRESS_TXT[st.level]||"")}</div>
+      ${st.on.length?`<div class="small" style="margin-top:6px;line-height:1.6">${st.on.map(x=>"• "+esc(x)).join("<br>")}</div>`:""}</section>`;
+    h+=`<h2>แนวโน้มหลัก</h2><div class="list">`;
+    T.trends.forEach(t=>{
+      const c=t.chg_1d, vol=t.vol_4w?`กรอบแกว่ง 4 สัปดาห์ ±${fmt(t.vol_4w*100,1)}%`:"";
+      h+=`<div class="line full" style="cursor:default"><div class="row"><span>${esc(TN[t.name]||t.name)}${TN_HINT[t.name]?` <span class="small">(${esc(TN_HINT[t.name])})</span>`:""}</span>
+        <span style="white-space:nowrap">W${t.w_emoji||"⚪"} D${t.d_emoji||"⚪"}</span></div>
+        <div class="meta"><span><b>${esc(t.label)}</b>${t.vol?` · <span class="tag ${t.vol==="แกว่งแรง"?"bad":""}">${esc(t.vol)}</span>`:""}</span>
+        <span class="${c>0?"up":c<0?"down":""}">${c==null?"":(c>0?"+":"")+fmt(c,2)+"% วันนี้"}</span></div>
+        ${vol?`<div class="small">${esc(vol)}</div>`:""}</div>`;
+    });
+    h+=`</div><div class="small" style="margin:0 4px;line-height:1.6">W = ภาพใหญ่ (รายสัปดาห์ สัปดาห์นี้ยังไม่ปิด) · D = ระยะสั้น (รายวัน)<br>
+      "พักตัว" = ภาพใหญ่ยังขึ้นแต่ระยะสั้นย่อลง · "ฟื้นสั้น" = ภาพใหญ่ยังลงแต่ระยะสั้นเด้ง${T.changed&&T.changed.length?`<br>⚡ เปลี่ยนสีวันนี้: ${esc(T.changed.join(", "))}`:""}</div>`;
+  } else h+=`<section class="hero"><div class="lbl">ตลาดวันนี้</div><div class="sub">ยังไม่มีข้อมูลสรุปจากบอท (มาพร้อมรายงานเช้าถัดไป)</div></section>`;
+
+  // 2) กติกาของคุณ
+  h+=`<h2>กติกาของคุณ (มวลชน → CDC)</h2><div class="list">`;
+  ["Gold","BTC"].forEach(a=>{ const s=signalOf(a);
+    h+=`<div class="line full" style="cursor:default"><div class="row"><span>${a==="Gold"?"ทองคำ":"Bitcoin"}</span>
+      <span>${s?(s.rule_met?'<span class="tag ok">🎯 ครบเงื่อนไข</span>':'<span class="tag">ยังไม่ครบ</span>'):'<span class="small">ไม่มีข้อมูล</span>'}</span></div>
+      ${s?`<div class="small">มวลชน: ${esc(s.crowd_label||"-")}${s.fng?` (F&G ${s.fng})`:""} ${s.crowd_fear?"✓":"✗"} · CDC รายวัน ${esc(s.cdc_emoji||"")} ${esc(s.cdc_th||"")}</div>`:""}</div>`; });
+  h+=`</div>`;
+
+  // 3) พอร์ตของคุณ (คำนวณในเครื่อง ไม่ส่งออก)
+  const v=catValues();
+  if(MK&&MK.risk&&v.ready&&v.total>0){
+    const now=riskOf({gold:v.gold,stocks:v.stocks,btc:v.btc,cash:v.cash});
+    const plan=riskOf({gold:+S.plan.gold,stocks:stocksTarget(),btc:+S.plan.btc,cash:+S.plan.cash});
+    const top=RC_CATS.reduce((a,c)=>now.rc[c]>now.rc[a]?c:a,"gold");
+    h+=`<h2>ความเสี่ยงของพอร์ตคุณ</h2><div class="card" style="cursor:default">
+      <div class="small">สัดส่วนเงิน</div>${stackBar(now.w)}
+      <div class="small" style="margin-top:8px">สัดส่วนความเสี่ยง (ใครทำให้พอร์ตแกว่ง)</div>${stackBar(now.rc)}
+      <div class="legend" style="margin-top:8px">${RC_CATS.map(c=>`<span><i style="background:var(${RC_COLOR[c]})"></i>${RC_NAME[c]} ${fmt(now.w[c]*100,0)}% → ${fmt(now.rc[c]*100,0)}%</span>`).join("")}</div>
+      <div class="note" style="line-height:1.6">${esc(RC_NAME[top])}ถือ ${fmt(now.w[top]*100,0)}% ของเงิน แต่ทำให้พอร์ตแกว่ง ${fmt(now.rc[top]*100,0)}%<br>
+        ปีปกติพอร์ตแกว่งราว ±${fmt(now.vol*100,1)}% <span class="money">(±฿${fmt(now.vol*v.total)})</span> · ถ้าเป็นตามแผน ±${fmt(plan.vol*100,1)}%</div></div>`;
+    // stress test
+    const sc=Object.values(MK.risk.scenarios||{});
+    if(sc.length){
+      h+=`<h2>ถ้าเกิดเหตุการณ์แบบในอดีตอีก</h2><div class="list">`;
+      sc.forEach(x=>{ const r=x.ret, miss=r.btc==null;
+        const loss=w=>RC_CATS.reduce((t,c)=>t+(w[c]||0)*(r[c]||0),0);
+        const a=loss(now.w), b=loss(plan.w);
+        h+=`<div class="line full" style="cursor:default"><div class="row"><span>${esc(x.label)}</span>
+          <b class="${a<0?"down":"up"}">${a>0?"+":""}${fmt(a*100,1)}%</b></div>
+          <div class="meta"><span class="money">≈ ${a<0?"−":"+"}฿${fmt(Math.abs(a*v.total))}</span><span>ถ้าเป็นตามแผน ${b>0?"+":""}${fmt(b*100,1)}%</span></div>
+          ${miss?`<div class="small">ไม่มีข้อมูล BTC ช่วงนั้น (นับ BTC = 0%)</div>`:""}</div>`; });
+      h+=`</div><div class="small" style="margin:0 4px;line-height:1.6">คิดจากสัดส่วนพอร์ตในเครื่องนี้ × ผลตอบแทนจริงช่วงนั้น (ทอง/BTC เป็นเงินบาท, หุ้นปันผลใช้กองทุน 1DIV แทน) เหตุการณ์ใหม่จะไม่เหมือนเดิมทุกครั้ง</div>`;
+    }
+    // ห่างแผน
+    const tot=v.total, gaps=[["gold",v.gold,+S.plan.gold],["stocks",v.stocks,stocksTarget()],["cash",v.cash,+S.plan.cash],["btc",v.btc,+S.plan.btc]]
+      .map(([k,val,t])=>[k,val/tot*100-t]).filter(([k,d])=>Math.abs(d)>S.plan.band).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1]));
+    h+=`<h2>เทียบแผน</h2><div class="card" data-goto="plan">${gaps.length?gaps.map(([k,d])=>`<div class="row" style="padding:3px 0"><span>${esc(RC_NAME[k])}</span><span>${d>0?"เกินแผน":"ขาดจากแผน"} ${fmt(Math.abs(d),1)} จุด</span></div>`).join(""):'<div class="small">ทุกส่วนอยู่ในกรอบแผน</div>'}
+      <div class="small" style="margin-top:6px;color:var(--accent)">ไปแท็บแผน/DCA ›</div></div>`;
+  } else if(MK&&MK.risk) h+=`<h2>ความเสี่ยงของพอร์ตคุณ</h2><div class="small" style="margin:0 4px">${v.ready?"กรอกยอดในแท็บพอร์ตก่อน":"รอราคา BTC/ทองสักครู่…"}</div>`;
+  h+=`<footer>สรุปตลาดมาจากบอททุกเช้า · ตัวเลขพอร์ตคำนวณในเครื่องนี้เท่านั้น<br>เป็นสถานะและข้อมูลประกอบ ไม่ใช่คำแนะนำซื้อขาย การตัดสินใจเป็นของคุณ</footer>`;
+  el.innerHTML=h;
+}
+$("pageToday").addEventListener("click",ev=>{ const g=ev.target.closest("[data-goto]"); if(g) showTab(g.dataset.goto); });
 
 /* เสนอการแบ่งเงินตามส่วนที่ยังขาดจากเป้า (คำนวณตามแผนของผู้ใช้เอง ไม่ใช่คำแนะนำลงทุน) */
 function suggest(A){
@@ -947,20 +1035,22 @@ $("pageSalary").addEventListener("click",ev=>{
   if(a==="exp"){const e=m.expenses.find(x=>x.id===id); if(e) expenseSheet(m,e); return;}
 });
 
-function refresh(){ ensure(); render(); if(S.tab==="salary") renderSalary(); if(S.tab==="plan") renderPlan(); }
+function refresh(){ ensure(); render(); if(S.tab==="salary") renderSalary(); if(S.tab==="plan") renderPlan(); if(S.tab==="today") renderToday(); }
 function showTab(t){
   S.tab=t; save();
-  $("pagePort").hidden=t!=="port"; $("pageSalary").hidden=t!=="salary"; $("pagePlan").hidden=t!=="plan";
+  $("pagePort").hidden=t!=="port"; $("pageSalary").hidden=t!=="salary"; $("pagePlan").hidden=t!=="plan"; $("pageToday").hidden=t!=="today";
   document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.tab===t));
-  $("pageTitle").textContent=t==="salary"?"เงินเดือน":t==="plan"?"แผน & DCA":"พอร์ตของฉัน";
+  $("pageTitle").textContent=t==="salary"?"เงินเดือน":t==="plan"?"แผน & DCA":t==="today"?"สรุปวันนี้":"พอร์ตของฉัน";
   if(t==="salary") renderSalary();
+  if(t==="today") renderToday();
   if(t==="plan") renderPlan();
   window.scrollTo(0,0);
 }
 document.querySelectorAll(".tabs button").forEach(b=>b.onclick=()=>showTab(b.dataset.tab));
 
 /* ---------- start ---------- */
-ensure(); render(); showTab(["salary","plan"].includes(S.tab)?S.tab:"port"); loadFx(); connect(); loadMarket();
+if(!S.seenToday){ S.seenToday=1; S.tab="today"; }  /* เปิดครั้งแรกหลังอัปเดต: พาไปหน้า "วันนี้" */
+ensure(); render(); showTab(["salary","plan","today","port"].includes(S.tab)?S.tab:"today"); loadFx(); connect(); loadMarket();
 setInterval(loadMarket,30*60*1000);
 /* เช็กเวอร์ชันใหม่: มือถือ/GitHub Pages เก็บหน้าเก่าไว้ได้ ถ้าเจอเวอร์ชันใหม่ให้โหลดหน้าใหม่ด้วย URL ใหม่ (ไม่ใช้ของที่เก็บไว้) */
 async function checkUpdate(){
