@@ -262,7 +262,7 @@ const DEFAULT = {
 const PLAN_DEFAULT = {gold:35, cash:10, btc:10, hospital:14, food:12, bank:10, reit:9, goldCap:50, band:5};
 const GROUPS = {hospital:"รพ./ยา", food:"อาหาร/อุปโภค", bank:"ธนาคาร", reit:"REIT/กองทุน"};
 const MKEY = "myPortfolio.market";
-const APP_VERSION = "2026.11.27-1";
+const APP_VERSION = "2026.11.27-2";
 /* ประเภทสินทรัพย์สำหรับมุมมองรวม (พอร์ตหลัก + กบข.) */
 const GPF_CLS = {thstock:"หุ้นไทย", fstock:"หุ้นต่างประเทศ", bond:"ตราสารหนี้", gold:"ทองคำ", prop:"อสังหาฯ/REIT ไทย", cash:"เงินฝาก/เงินสด"};
 const ALL_CLS = Object.assign({}, GPF_CLS, {btc:"Bitcoin"});
@@ -373,7 +373,7 @@ function render(){
     // แถวกระชับ: ต้นทุน/วันที่ราคา/เหตุผลที่ติดธง ดูได้เมื่อแตะ (หน้าแก้ไข)
     div.innerHTML=`<div class="row"><div class="name" style="min-width:0"><div class="badge" style="color:var(--c-stock);font-size:9.5px;letter-spacing:-.3px">${esc(s.sym.slice(0,5))}</div>
       <div style="min-width:0">${esc(s.sym)}${info&&info.cat?` <span class="tag ${info.passed?"ok":"bad"}" title="${esc(info.flag||"")}">${info.passed?"✅":"⚠️"} ${esc(info.cat)}</span>`:""}
-      <div class="small" style="font-weight:400">${fmt(s.shares)} หุ้น · ฿${fmt(sp.price,2)}${cdcTxt(info)?" · "+cdcTxt(info):""}</div></div></div>
+      <div class="small" style="font-weight:400">${fmt(s.shares)} หุ้น · ฿${fmt(sp.price,2)}${cdcTxt(info)?" · "+esc(trendOf(info))+" "+cdcTxt(info):""}</div></div></div>
       <div class="val"><div class="money price">฿${fmt(v)}</div>${c?`<div class="small money ${cls(d)}">${sign(p)}${fmt(p,1)}%</div>`:""}</div></div>`;
     sh.appendChild(div);
   });
@@ -521,6 +521,14 @@ function cdcTxt(m){ if(!m) return ""; const p=[];
   if(m.cdc_d) p.push("D"+(ZE[m.cdc_d]||"")+(m.cdc_d_chg?"⚡":""));
   if(m.cdc_w) p.push("W"+(ZE[m.cdc_w]||"")+(m.cdc_w_chg?"⚡":""));
   return p.join(" "); }
+/* แปลสี CDC: W = ภาพใหญ่ (รายสัปดาห์), D = ระยะสั้น (รายวัน) — ตรงกับ trend_label ในบอท */
+function trendLabel(w,d){
+  const B=["GREEN","YELLOW"];
+  if(!w) return {GREEN:"ขึ้น",YELLOW:"ขึ้นอ่อนแรง",RED:"ลง",BLUE:"ลงเริ่มฟื้น"}[d]||"";
+  if(B.includes(w)) return {GREEN:"ขาขึ้น",YELLOW:"ขาขึ้น·ชะลอ",RED:"ขาขึ้น·พักตัว",BLUE:"ขาขึ้น·พักตัว"}[d]||"ขาขึ้น";
+  return {RED:"ขาลง",BLUE:"ขาลง·ฟื้นสั้น",GREEN:"ขาลง·ฟื้นแรง รอ W",YELLOW:"ขาลง·ฟื้นแรง รอ W"}[d]||"ขาลง";
+}
+function trendOf(m){ return m&&m.cdc_d? trendLabel(m.cdc_w,m.cdc_d):""; }
 function mkStock(sym){ return MK&&MK.stocks? MK.stocks[String(sym||"").toUpperCase()]||null : null; }
 function stockPx(s){ const m=mkStock(s.sym); return (m&&m.price)? {price:m.price,auto:true,date:m.date} : {price:+s.price||0,auto:false}; }
 function stockGroup(s){ if(s.group) return s.group; const m=mkStock(s.sym); return (m&&m.group)||"other"; }
@@ -882,9 +890,10 @@ function renderPlan(){
     Object.entries(GROUPS).forEach(([g,label])=>{
       const ok=Object.entries(MK.stocks).filter(([s,m])=>m.group===g&&m.passed).sort((a,b)=>(b[1].yield||0)-(a[1].yield||0));
       h+=`<div class="line full" style="cursor:default"><div class="small">${esc(label)}</div>
-        <div style="margin-top:4px">${ok.length?ok.map(([s,m])=>`<span class="tag ok" style="margin:2px 4px 2px 0">${esc(s)} ${fmt(m.yield||0,1)}% ${cdcTxt(m)}</span>`).join(""):'<span class="small">ไม่มีตัวที่ผ่าน</span>'}</div></div>`;
+        ${ok.length?ok.map(([s,m])=>`<div class="row" style="padding:5px 0"><span><b>${esc(s)}</b> <span class="small">ปันผล ${fmt(m.yield||0,1)}%</span></span>
+          <span style="text-align:right;white-space:nowrap">${esc(trendOf(m))} <span class="small">${cdcTxt(m)}</span></span></div>`).join(""):'<div class="small" style="margin-top:4px">ไม่มีตัวที่ผ่าน</div>'}</div>`;
     });
-    h+=`</div><div class="small" style="margin:0 4px">✅ = ปันผลผ่านเกณฑ์ความปลอดภัย (ไม่ได้ประเมินว่าราคาถูก/แพง) · % = ปันผลปกติ · CDC D = รายวัน, W = รายสัปดาห์ (สัปดาห์นี้ยังไม่ปิด), ⚡ = เพิ่งเปลี่ยนสี · คัดเมื่อ ${esc(thDate(MK.screened||MK.updated))}</div>`;
+    h+=`</div><div class="small" style="margin:0 4px">✅ = ปันผลผ่านเกณฑ์ความปลอดภัย (ไม่ได้ประเมินว่าราคาถูก/แพง) · % = ปันผลปกติ · ทิศทางแปลจากสี CDC: W = ภาพใหญ่รายสัปดาห์ (สัปดาห์นี้ยังไม่ปิด), D = ระยะสั้นรายวัน · "พักตัว" = ภาพใหญ่ยังขึ้นแต่ระยะสั้นย่อ · "ฟื้นสั้น" = ภาพใหญ่ยังลงแต่ระยะสั้นเด้ง · ⚡ = เพิ่งเปลี่ยนสี · เป็นสถานะ ไม่ใช่สัญญาณซื้อขาย · คัดเมื่อ ${esc(thDate(MK.screened||MK.updated))}</div>`;
   }
 
   // history
